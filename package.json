@@ -1,0 +1,19 @@
+{
+  "name": "node-addon-tutorial-vector-example",
+  "version": "1.0.0",
+  "main": "bindings.js",
+  "scripts": {
+    "build": "node-gyp configure build",
+    "install": "node-gyp rebuild",
+    "clean": "node-gyp clean",
+    "start": "node ./index.js"
+  },
+  "dependencies": {
+    "alea": "^1.0.0",
+    "lodash": "^4.17.11",
+    "nan": "^2.7.0",
+    "simplex-noise": "^2.4.0"
+  },
+  "gypfile": true,
+  "license": "MIT"
+}

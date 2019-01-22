@@ -1,0 +1,1 @@
+module.exports = process.env.DEBUG?require('./build/Debug/opencv.node'):require('./build/Release/opencv.node')
