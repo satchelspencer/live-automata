@@ -126,13 +126,13 @@ function getNoiseDir(x, y, z) {
 }
 
 function noiseGrid(x, y, z) {
-  const scale = 1 / 10;
+  const scale = 1 / 5;
   const grid = _.range(y).map(i =>
     _.range(x).map(j => {
       const nx = j * scale,
         ny = i * scale;
-      const a = getNoiseDir(nx, ny, z + 0.4),
-        b = getNoiseDir(nx, ny, z + 0.5);
+      const a = getNoiseDir(nx, ny, z + 0.9),
+        b = getNoiseDir(nx, ny, z + 0.8);
       const out = [0, 0, 0, 0];
       out[a] += 1;
       out[b] += 2;
@@ -236,46 +236,83 @@ function prevent(parent, victim, toPrevent) {
   return newParent;
 }
 
-function makeGridSeq(start, n) {
+function insertNew(step) {
+  const [grid] = step,
+    [width, height] = getSize(grid),
+    newStep = clone(step),
+    [newGrid, newUsed] = newStep;
+
+  const tx = Math.floor(prng() * width),
+    ty = Math.floor(prng() * height),
+    output = string2io(possibleIos[Math.floor(prng() * possibleIos.length)]);
+
+  const nextCell = newGrid[ty][tx];
+
+  if (cell2string(nextCell) === "0000-0000") {
+    nextCell[1] = output;
+    makeValidOutput(newGrid);
+    newGrid.forEach((row, y) =>
+      row.forEach((cell, x) => {
+        const newStr = cell2string(cell),
+          oldStr = cell2string(grid[y][x]);
+        if (newStr !== oldStr) {
+          newUsed[oldStr]--;
+          if (!newUsed[oldStr]) delete newUsed[oldStr];
+          newUsed[newStr] = newUsed[newStr] || 0;
+          newUsed[newStr]++;
+        }
+      })
+    );
+    // const newStr = cell2string(nextCell);
+    // newUsed[newStr] = newUsed[newStr] || 0;
+    // newUsed[newStr]++;
+  }
+  return newStep;
+}
+
+function makeGridSeq(start, n, ec, z = 0) {
   let seq = [start];
   while (seq.length < n) {
-    const prev = seq[seq.length - 1]
+    const targetUnknowns = n - seq.length < ec ? 0 : 1;
 
-    let next = getNextInSeq(prev, n+7), 
+    let prev = seq[seq.length - 1],
+      next = getNextInSeq(prev, n + z),
       unknowns = getUnknowns(prev, next);
 
-    console.log(seq.length, unknowns);
-    if (unknowns.length > 1) {
-      let victim = next
-      while (unknowns.length > 1) {
+    //console.log(seq.length, unknowns);
+    if (unknowns.length > targetUnknowns) {
+      let victim = next;
+      while (unknowns.length > targetUnknowns) {
         const parent = seq.pop(),
-          grandParent = seq[seq.length - 1],
-          [keeper, ...toPrevent] = unknowns;
+          prev = seq[seq.length - 1],
+          toPrevent = unknowns.slice(targetUnknowns);
 
-        console.log("preventing", toPrevent);
+        //console.log("preventing", toPrevent);
         next = prevent(parent, victim, toPrevent);
-        unknowns = getUnknowns(grandParent, next);
+        unknowns = getUnknowns(prev, next);
         victim = next;
-        console.log("now has unknowns", unknowns);
+        //console.log("now has unknowns", unknowns);
       }
     }
-    
-    seq.push(next);
+
+    let added = next,
+      a = 0;
+    while (unknowns.length !== targetUnknowns && a++ < 100) {
+      added = insertNew(next);
+      unknowns = getUnknowns(prev, added);
+      //console.log("adding", unknowns);
+    }
+    seq.push(added);
   }
   return seq;
 }
 
-const start = emptyGrid(7,7);
-start[0][0][1] = [0, 0, 0, 3];
-
-const seq = makeGridSeq([start, {'0000-0003': 1}], 40);
-
-function evaluate(seq) {
+function evaluate(seq, print) {
   const used = {};
   let failed = false;
   seq.forEach(([grid, _], i) => {
-    console.log(i, ":");
-    
+    print && console.log(i, ":");
+
     let unknowns = 0;
     grid.forEach(row =>
       row.forEach(cell => {
@@ -284,23 +321,82 @@ function evaluate(seq) {
         if (!used[str]) {
           used[str] = 1;
           unknowns++;
-          console.log(str);
+          print && console.log(str);
         } else {
           used[str]++;
         }
       })
     );
-    console.log(display.asciiGrid(grid));
+    print && console.log(display.asciiGrid(grid));
     if (unknowns > 1) {
       failed = true;
-      throw "oh"
+      //throw "oh";
     }
   });
-  failed && console.log("FAIL");
+
+  const count =_.sum(_.values(used)),
+  avg = count/_.values(used).length
+
+
+  let vari = 0
+  _.values(used).forEach(val => {
+    vari += Math.abs(val-avg)
+  })
+
+  return {
+    failed,
+    count,
+    avg,
+    vari: vari,
+    score : _.values(used).filter(v => v > 10).length+(avg/2),
+    used: _.values(used),
+  };
 }
 
-evaluate(seq)
+if (false) {
+  let max = 0;
+  while (1) {
+    try {
+      let r = Math.random()*100000000;
+      prng = new Alea(r)
+      const start = emptyGrid(7, 7);
+      start[2][2][1] = [0, 0, 0, 3];
+      const seq = makeGridSeq([start, { "0000-0003": 1 }], 60, 20, r);
+
+      const { failed, score, used } = evaluate(seq);
+      if (/*used.length === 40 && */!failed && score > max) {
+        max = score;
+        console.log(r, score);
+      }
+    } catch (e) {}
+  }
+} else {
+  let r =  41446000.05867529
+  prng = new Alea(r)
+  const start = emptyGrid(7, 7);
+  start[2][2][1] = [0, 0, 0, 3];
+  const seq = makeGridSeq(
+    [start, { "0000-0003": 1 }],
+    60,
+    20,
+   r
+  );
+
+  console.log(evaluate(seq, 1));
+}
 
 module.exports = {
   makeGridSeq
 };
+
+/*
+itsok: 94596815.88019946
+
+
+58646629.011873454 
+
+
+7065586.811547342 90.11905756910278
+96419078.19016589 92.02093095937575
+
+*/
