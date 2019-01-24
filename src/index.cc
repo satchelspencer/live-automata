@@ -34,6 +34,26 @@ NAN_MODULE_INIT(InitModule) {
     Nan::New("resize").ToLocalChecked(),
     Nan::New<v8::FunctionTemplate>(Resize)->GetFunction()
   );
+
+  target->Set(
+    Nan::New("add").ToLocalChecked(),
+    Nan::New<v8::FunctionTemplate>(Add)->GetFunction()
+  );
+
+  target->Set(
+    Nan::New("subtract").ToLocalChecked(),
+    Nan::New<v8::FunctionTemplate>(Subtract)->GetFunction()
+  );
+
+  target->Set(
+    Nan::New("invert").ToLocalChecked(),
+    Nan::New<v8::FunctionTemplate>(Invert)->GetFunction()
+  );
+
+  target->Set(
+    Nan::New("multiply").ToLocalChecked(),
+    Nan::New<v8::FunctionTemplate>(Multiply)->GetFunction()
+  );
 }
 
 NODE_MODULE(myModule, InitModule);

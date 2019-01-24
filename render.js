@@ -7,6 +7,7 @@ cv.namedWindow("rendertest");
 
 const seq = JSON.parse(fs.readFileSync("media/seq.json"));
 const mask = cv.imread('media/mask.jpg')
+cv.invert(mask, mask)
 
 const x = 7,
   y = 7,
