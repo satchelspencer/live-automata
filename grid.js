@@ -8,6 +8,7 @@ const _ = require("lodash");
 const display = require("./display");
 const SimplexNoise = require("simplex-noise");
 const Alea = require("alea");
+const fs = require('fs')
 
 let prng = new Alea(7);
 const simplex = new SimplexNoise(prng);
@@ -199,10 +200,28 @@ function getUnknowns(prev, next) {
   );
 }
 
+function updateUsed(prev, next) {
+  const [prevGrid] = prev,
+    [nextGrid, nextUsed] = next;
+
+  nextGrid.forEach((row, y) =>
+    row.forEach((cell, x) => {
+      const newStr = cell2string(cell),
+        oldStr = cell2string(prevGrid[y][x]);
+      if (newStr !== oldStr) {
+        nextUsed[oldStr]--;
+        if (!nextUsed[oldStr]) delete nextUsed[oldStr];
+        nextUsed[newStr] = nextUsed[newStr] || 0;
+        nextUsed[newStr]++;
+      }
+    })
+  );
+}
+
 function prevent(parent, victim, toPrevent) {
   const newParent = clone(parent),
     [parentGrid] = parent,
-    [newParentGrid, newParentUsed] = newParent,
+    [newParentGrid] = newParent,
     [victimGrid] = victim,
     [width, height] = getSize(parentGrid);
 
@@ -219,20 +238,8 @@ function prevent(parent, victim, toPrevent) {
       }
     })
   );
-
-  newParentGrid.forEach((row, y) =>
-    row.forEach((cell, x) => {
-      const afterStr = cell2string(cell),
-        beforeStr = cell2string(parentGrid[y][x]);
-
-      if (afterStr !== beforeStr) {
-        newParentUsed[beforeStr]--;
-        if (!newParentUsed[beforeStr]) delete newParentUsed[beforeStr];
-        newParentUsed[afterStr] = newParentUsed[afterStr] || 0;
-        newParentUsed[afterStr]++;
-      }
-    })
-  );
+  //dont have to make valid, since removal only is always valid
+  updateUsed(parent, newParent);
   return newParent;
 }
 
@@ -251,23 +258,38 @@ function insertNew(step) {
   if (cell2string(nextCell) === "0000-0000") {
     nextCell[1] = output;
     makeValidOutput(newGrid);
-    newGrid.forEach((row, y) =>
+    updateUsed(step, newStep);
+  }
+  return newStep;
+}
+
+function addAlreadyKnown(step) {
+  const [grid, used] = step,
+    entrances = _.keys(used).filter(
+      v => v.split("-")[0] === "0000" && v.split("-")[1] !== "0000"
+    );
+
+  if (entrances.length < 2) return step;
+  else {
+    const [width, height] = getSize(grid),
+      newStep = clone(step),
+      [newGrid, newUsed] = newStep;
+
+    grid.forEach((row, y) =>
       row.forEach((cell, x) => {
-        const newStr = cell2string(cell),
-          oldStr = cell2string(grid[y][x]);
-        if (newStr !== oldStr) {
-          newUsed[oldStr]--;
-          if (!newUsed[oldStr]) delete newUsed[oldStr];
-          newUsed[newStr] = newUsed[newStr] || 0;
-          newUsed[newStr]++;
+        const str = cell2string(cell);
+        if (str === "0000-0000" && prng() < 0.05) {
+          const newValue = entrances[Math.floor(prng() * entrances.length)];
+          newGrid[y][x] = string2cell(newValue);
         }
       })
     );
-    // const newStr = cell2string(nextCell);
-    // newUsed[newStr] = newUsed[newStr] || 0;
-    // newUsed[newStr]++;
+
+    makeValidOutput(newGrid);
+    updateUsed(step, newStep);
+
+    return newStep;
   }
-  return newStep;
 }
 
 function makeGridSeq(start, n, ec, z = 0) {
@@ -278,6 +300,12 @@ function makeGridSeq(start, n, ec, z = 0) {
     let prev = seq[seq.length - 1],
       next = getNextInSeq(prev, n + z),
       unknowns = getUnknowns(prev, next);
+
+    let tries = 0;
+    while (unknowns.length > targetUnknowns && tries++ < 100) {
+      next = getNextInSeq(prev, n + z + tries);
+      unknowns = getUnknowns(prev, next);
+    }
 
     //console.log(seq.length, unknowns);
     if (unknowns.length > targetUnknowns) {
@@ -302,6 +330,9 @@ function makeGridSeq(start, n, ec, z = 0) {
       unknowns = getUnknowns(prev, added);
       //console.log("adding", unknowns);
     }
+
+    added = addAlreadyKnown(added);
+
     seq.push(added);
   }
   return seq;
@@ -334,69 +365,56 @@ function evaluate(seq, print) {
     }
   });
 
-  const count =_.sum(_.values(used)),
-  avg = count/_.values(used).length
+  const count = _.sum(_.values(used)),
+    avg = count / _.values(used).length;
 
-
-  let vari = 0
+  let vari = 0;
   _.values(used).forEach(val => {
-    vari += Math.abs(val-avg)
-  })
+    vari += Math.abs(val - avg);
+  });
 
   return {
     failed,
     count,
     avg,
     vari: vari,
-    score : _.values(used).filter(v => v > 10).length+(avg/2),
-    used: _.values(used),
+    score: _.values(used).filter(v => v > 10).length + avg / 2,
+    used: _.values(used)
   };
 }
 
-if (false) {
-  let max = 0;
-  while (1) {
-    try {
-      let r = Math.random()*100000000;
-      prng = new Alea(r)
-      const start = emptyGrid(7, 7);
-      start[2][2][1] = [0, 0, 0, 3];
-      const seq = makeGridSeq([start, { "0000-0003": 1 }], 60, 20, r);
+// if (false) {
+//   let max = 0;
+//   while (1) {
+//     try {
+//       let r = Math.random() * 100000000;
+//       prng = new Alea(r);
+//       const start = emptyGrid(7, 7);
+//       start[2][2][1] = [0, 0, 0, 3];
+//       const seq = makeGridSeq([start, { "0000-0003": 1 }], 60, 20, r);
 
-      const { failed, score, used } = evaluate(seq);
-      if (/*used.length === 40 && */!failed && score > max) {
-        max = score;
-        console.log(r, score);
-      }
-    } catch (e) {}
-  }
-} else {
-  let r =  41446000.05867529
-  prng = new Alea(r)
-  const start = emptyGrid(7, 7);
-  start[2][2][1] = [0, 0, 0, 3];
-  const seq = makeGridSeq(
-    [start, { "0000-0003": 1 }],
-    60,
-    20,
-   r
-  );
+//       const { failed, score, used } = evaluate(seq);
+//       if (/*used.length === 40 && */ !failed && score > max) {
+//         max = score;
+//         console.log(r, score);
+//       }
+//     } catch (e) {}
+//   }
+// } else {
+//   let r = 96594309.23851529;
+//   prng = new Alea(r);
+//   const start = emptyGrid(7, 7);
+//   start[2][2][1] = [0, 0, 0, 3];
+//   const seq = makeGridSeq([start, { "0000-0003": 1 }], 60, 20, r);
 
-  console.log(evaluate(seq, 1));
-}
+//   console.log(evaluate(seq, 1));
+//   //fs.writeFileSync('seq.json', JSON.stringify(seq))
+
+// }
 
 module.exports = {
-  makeGridSeq
+  makeGridSeq,
+  cell2string,
+  string2cell
 };
 
-/*
-itsok: 94596815.88019946
-
-
-58646629.011873454 
-
-
-7065586.811547342 90.11905756910278
-96419078.19016589 92.02093095937575
-
-*/

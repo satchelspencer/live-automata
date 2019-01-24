@@ -10,6 +10,7 @@ class VideoCapture : public Nan::ObjectWrap
   static NAN_METHOD(New);
 
   static NAN_METHOD(Read);
+  static NAN_METHOD(Release);
 
   static Nan::Persistent<v8::FunctionTemplate> constructor;
 

@@ -11,6 +11,8 @@ NAN_MODULE_INIT(VideoCapture::Init) {
 
   Nan::SetPrototypeMethod(ctor, "read", Read);
 
+  Nan::SetPrototypeMethod(ctor, "release", Release);
+
   target->Set(Nan::New("VideoCapture").ToLocalChecked(), ctor->GetFunction());  
 
 }
@@ -38,4 +40,9 @@ NAN_METHOD(VideoCapture::Read) {
   VideoCapture * self = Nan::ObjectWrap::Unwrap<VideoCapture>(info.This());
   Mat * destMat = Nan::ObjectWrap::Unwrap<Mat>(info[0]->ToObject());
   self->cap->read(* destMat->mat);
+}
+
+NAN_METHOD(VideoCapture::Release) {
+  VideoCapture * self = Nan::ObjectWrap::Unwrap<VideoCapture>(info.This());
+  self->cap->release();
 }
