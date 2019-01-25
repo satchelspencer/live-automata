@@ -10,3 +10,13 @@ NAN_METHOD(Subtract);
 NAN_METHOD(Invert);
 
 NAN_METHOD(Multiply);
+
+NAN_METHOD(AddWeighted);
+
+NAN_METHOD(AbsDiff);
+
+NAN_METHOD(Blur);
+
+NAN_METHOD(Threshold);
+
+NAN_METHOD(CvtColor);

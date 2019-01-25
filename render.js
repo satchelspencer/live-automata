@@ -53,7 +53,8 @@ for (let frame = 0; frame < 10000; frame++) {
           nextVideos[str] = {
             capture: new cv.VideoCapture(`../FINALS_200/${str}.mp4`),
             capFrame: new cv.Mat(ins, ins, 16),
-            sizedFrame: new cv.Mat(s, s, 16)
+            sizedFrame: new cv.Mat(s, s, 16),
+            firstFrame: new cv.Mat(s, s, 16)
           };
         }
       })
@@ -65,14 +66,24 @@ for (let frame = 0; frame < 10000; frame++) {
     _.values(prevVideos).forEach(video => {
       video.capture.read(video.capFrame);
       cv.resize(video.capFrame, video.sizedFrame);
-      cv.multiply(video.sizedFrame, 0.5, video.sizedFrame);
+      //cv.multiply(video.sizedFrame, 0.5, video.sizedFrame);
     });
 
   /* read next frames */
   _.values(nextVideos).forEach(video => {
     video.capture.read(video.capFrame);
     cv.resize(video.capFrame, video.sizedFrame);
-    if (prevStep && frameCurrent < T) cv.multiply(video.sizedFrame, 0.5, video.sizedFrame);
+    if (frameCurrent === 0) video.sizedFrame.copyTo(video.firstFrame);
+    // cv.absdiff(video.sizedFrame, video.firstFrame, video.sizedFrame);
+    // cv.cvtColor(video.sizedFrame, 6);
+    // cv.cvtColor(video.sizedFrame, 8);
+    // cv.blur(video.sizedFrame, video.sizedFrame, 20)
+    // cv.threshold(video.sizedFrame, video.sizedFrame, 5, 255);
+    // cv.blur(video.sizedFrame, video.sizedFrame, 10)
+    // cv.invert(video.sizedFrame,video.sizedFrame)
+
+
+    //if (prevStep && frameCurrent < T) cv.multiply(video.sizedFrame, 0.5, video.sizedFrame);
   });
 
   /* draw */

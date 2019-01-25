@@ -54,6 +54,31 @@ NAN_MODULE_INIT(InitModule) {
     Nan::New("multiply").ToLocalChecked(),
     Nan::New<v8::FunctionTemplate>(Multiply)->GetFunction()
   );
+
+  target->Set(
+    Nan::New("addWeighted").ToLocalChecked(),
+    Nan::New<v8::FunctionTemplate>(AddWeighted)->GetFunction()
+  );
+
+  target->Set(
+    Nan::New("absdiff").ToLocalChecked(),
+    Nan::New<v8::FunctionTemplate>(AbsDiff)->GetFunction()
+  );
+
+  target->Set(
+    Nan::New("blur").ToLocalChecked(),
+    Nan::New<v8::FunctionTemplate>(Blur)->GetFunction()
+  );
+
+  target->Set(
+    Nan::New("threshold").ToLocalChecked(),
+    Nan::New<v8::FunctionTemplate>(Threshold)->GetFunction()
+  );
+
+  target->Set(
+    Nan::New("cvtColor").ToLocalChecked(),
+    Nan::New<v8::FunctionTemplate>(CvtColor)->GetFunction()
+  );
 }
 
 NODE_MODULE(myModule, InitModule);
