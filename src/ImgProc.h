@@ -20,3 +20,7 @@ NAN_METHOD(Blur);
 NAN_METHOD(Threshold);
 
 NAN_METHOD(CvtColor);
+
+NAN_METHOD(Max);
+
+NAN_METHOD(And);

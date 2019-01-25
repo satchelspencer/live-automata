@@ -79,6 +79,16 @@ NAN_MODULE_INIT(InitModule) {
     Nan::New("cvtColor").ToLocalChecked(),
     Nan::New<v8::FunctionTemplate>(CvtColor)->GetFunction()
   );
+
+  target->Set(
+    Nan::New("max").ToLocalChecked(),
+    Nan::New<v8::FunctionTemplate>(Max)->GetFunction()
+  );
+
+  target->Set(
+    Nan::New("and").ToLocalChecked(),
+    Nan::New<v8::FunctionTemplate>(And)->GetFunction()
+  );
 }
 
 NODE_MODULE(myModule, InitModule);

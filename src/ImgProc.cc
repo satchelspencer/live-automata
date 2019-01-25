@@ -72,3 +72,17 @@ NAN_METHOD(CvtColor) {
   int type = info[1]->Int32Value();
   cv::cvtColor(*src->mat,*src->mat,type);
 }
+
+NAN_METHOD(Max) {
+  Mat * a = Nan::ObjectWrap::Unwrap<Mat>(info[0]->ToObject());
+  Mat * b = Nan::ObjectWrap::Unwrap<Mat>(info[1]->ToObject());
+  Mat * dest = Nan::ObjectWrap::Unwrap<Mat>(info[2]->ToObject());
+  cv::max( * a->mat, * b->mat, * dest->mat);
+}
+
+NAN_METHOD(And) {
+  Mat * a = Nan::ObjectWrap::Unwrap<Mat>(info[0]->ToObject());
+  Mat * b = Nan::ObjectWrap::Unwrap<Mat>(info[1]->ToObject());
+  Mat * dest = Nan::ObjectWrap::Unwrap<Mat>(info[2]->ToObject());
+  cv::bitwise_and( * a->mat, * b->mat, * dest->mat);
+}
