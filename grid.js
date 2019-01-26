@@ -8,7 +8,7 @@ const _ = require("lodash");
 const display = require("./display");
 const SimplexNoise = require("simplex-noise");
 const Alea = require("alea");
-const fs = require('fs')
+const fs = require("fs");
 
 let prng = new Alea(7);
 const simplex = new SimplexNoise(prng);
@@ -127,12 +127,12 @@ function getNoiseDir(x, y, z) {
 }
 
 function noiseGrid(x, y, z) {
-  const scale = 1 / 5;
+  const scale = 1 / 2;
   const grid = _.range(y).map(i =>
     _.range(x).map(j => {
       const nx = j * scale,
         ny = i * scale;
-      const a = getNoiseDir(nx, ny, z + 0.9),
+      const a = getNoiseDir(nx, ny, z + 0.4),
         b = getNoiseDir(nx, ny, z + 0.8);
       const out = [0, 0, 0, 0];
       out[a] += 1;
@@ -148,7 +148,7 @@ function getSize(grid) {
   return [grid[0].length, grid.length];
 }
 
-function applyOutputs(prevGrid, grid) {
+function applyOutputs(prevGrid, grid, allowCreation) {
   const [width, height] = getSize(prevGrid);
   /* take outputs and feed them into adjacent cells */
   for (let y = 0; y < height; y++) {
@@ -165,20 +165,22 @@ function applyOutputs(prevGrid, grid) {
     }
   }
   /* make sire that empty inputs have no output (no 0000-xxxx) */
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const ocell = grid[y][x];
-      if (io2string(ocell[0]) === "0000") ocell[1] = [0, 0, 0, 0];
+  if (!allowCreation) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const ocell = grid[y][x];
+        if (io2string(ocell[0]) === "0000") ocell[1] = [0, 0, 0, 0];
+      }
     }
   }
 }
 
-function getNextInSeq(prev, z) {
+function getNextInSeq(prev, z, allowCreation) {
   const [prevGrid, prevUsed] = prev,
     [width, height] = getSize(prevGrid);
 
   const grid = noiseGrid(width, height, z);
-  applyOutputs(prevGrid, grid);
+  applyOutputs(prevGrid, grid, allowCreation);
   makeValidOutput(grid);
 
   const nextUsed = { ...prevUsed };
@@ -383,6 +385,27 @@ function evaluate(seq, print) {
   };
 }
 
+function makeRandSeq(start, n) {
+  let seq = [start];
+  while (seq.length < n) {
+    let prev = seq[seq.length - 1],
+      next = getNextInSeq(prev, n, true);
+
+    seq.push(next);
+  }
+  return seq;
+}
+
+// const start = emptyGrid(7, 7);
+// start[2][2][1] = [0, 0, 0, 3];
+// const s = makeRandSeq([start, { "0000-0003": 1 }], 10);
+// s.forEach((step, i) => {
+//   console.log(display.asciiGrid(step[0]));
+// });
+// fs.writeFileSync('media/rseq.json', JSON.stringify(s))
+
+
+
 // if (false) {
 //   let max = 0;
 //   while (1) {
@@ -417,4 +440,3 @@ module.exports = {
   cell2string,
   string2cell
 };
-

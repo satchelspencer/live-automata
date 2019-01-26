@@ -5,7 +5,7 @@ const display = require("./display");
 const _ = require("lodash");
 cv.namedWindow("rendertest");
 
-const seq = JSON.parse(fs.readFileSync("media/seq.json")).slice(25),
+const seq = JSON.parse(fs.readFileSync("media/rseq.json")).slice(0),
   mask = cv.imread("media/mask.jpg"),
   maskSize = 1209,
   maskVx = 62,
@@ -62,14 +62,13 @@ function getMask(firstFrame, thisFrame, dest) {
 let prevVideos = {},
   nextVideos = {};
 
-for (let frame = 0; frame < 10000; frame++) {
+  let t = new Date().getTime()
+function renderFrame(frame){
+  t = new Date().getTime()
   const frameCurrent = frame % period,
-    framePrev = Math.min(frameCurrent + period, len),
     stepIndex = Math.floor(frame / period),
     nextStep = seq[stepIndex],
     prevStep = seq[stepIndex - 1];
-
-  //console.log("**", stepIndex, frameCurrent, framePrev);
 
   if (frameCurrent === 0) {
     _.values(prevVideos).forEach(video => video.capture.release());
@@ -100,7 +99,6 @@ for (let frame = 0; frame < 10000; frame++) {
       cv.resize(video.capFrame, video.sizedFrame);
       getMask(video.firstFrame, video.sizedFrame, video.mask);
       cv.multiply(video.sizedFrame, video.mask, video.masked, 1 / 255);
-      //cv.multiply(video.sizedFrame, 0.5, video.sizedFrame);
     });
 
   /* read next frames */
@@ -136,6 +134,11 @@ for (let frame = 0; frame < 10000; frame++) {
           0,
           rois[j][i].bg
         );
+        if(frameCurrent < F){
+          const Ffrac = frameCurrent/F
+          cv.addWeighted(rois[j][i].bg, Ffrac, prevVid.sizedFrame, 1-Ffrac, 0, rois[j][i].bg)
+        }
+        
         cv.multiply(rois[j][i].bg, rois[j][i].mask, rois[j][i].bg, 1 / 255);
 
         cv.add(nextVid.masked, prevVid.masked, rois[j][i].fg);
@@ -144,7 +147,11 @@ for (let frame = 0; frame < 10000; frame++) {
       } else nextVideos[nextStr].sizedFrame.copyTo(rois[j][i].bg);
     })
   );
-
+  
   cv.imshow("6", canvas);
-  if (cv.waitKey(1) >= 0) break;
+  cv.waitKey(1)
+ 
+  renderFrame(frame+1);
+  
 }
+renderFrame(0)
