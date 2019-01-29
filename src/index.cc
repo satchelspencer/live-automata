@@ -40,6 +40,11 @@ NAN_MODULE_INIT(InitModule) {
     Nan::New<v8::FunctionTemplate>(Add)->GetFunction()
   );
 
+    target->Set(
+    Nan::New("mulConstant").ToLocalChecked(),
+    Nan::New<v8::FunctionTemplate>(MulConstant)->GetFunction()
+  );
+
   target->Set(
     Nan::New("subtract").ToLocalChecked(),
     Nan::New<v8::FunctionTemplate>(Subtract)->GetFunction()

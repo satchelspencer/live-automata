@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "alea": "^1.0.0",
+    "async": "^2.6.1",
     "lodash": "^4.17.11",
     "nan": "^2.7.0",
     "simplex-noise": "^2.4.0"

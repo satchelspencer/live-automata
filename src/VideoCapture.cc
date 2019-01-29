@@ -36,9 +36,33 @@ NAN_METHOD(VideoCapture::New) {
   info.GetReturnValue().Set(info.Holder());
 }
 
+class ReadWorker : public Nan::AsyncWorker {
+  public:
+    cv::VideoCapture * capture;
+    cv::Mat * dest;
+
+  ReadWorker(
+    cv::VideoCapture * capture,
+    cv::Mat * dest,
+    Nan::Callback *callback
+  ) :
+   Nan::AsyncWorker(callback),
+   capture(capture),
+   dest(dest) {}
+
+  void Execute() {
+    capture->read(* dest);
+  }
+};
+
 NAN_METHOD(VideoCapture::Read) {
   VideoCapture * self = Nan::ObjectWrap::Unwrap<VideoCapture>(info.This());
   Mat * destMat = Nan::ObjectWrap::Unwrap<Mat>(info[0]->ToObject());
+  // Nan::AsyncQueueWorker(new ReadWorker(
+  //   self->cap,
+  //   destMat->mat,
+  //   new Nan::Callback(info[1].As<v8::Function>())
+  // ));
   self->cap->read(* destMat->mat);
 }
 

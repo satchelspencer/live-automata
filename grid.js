@@ -127,12 +127,12 @@ function getNoiseDir(x, y, z) {
 }
 
 function noiseGrid(x, y, z) {
-  const scale = 1 / 2;
+  const scale = 1 / 5;
   const grid = _.range(y).map(i =>
     _.range(x).map(j => {
       const nx = j * scale,
         ny = i * scale;
-      const a = getNoiseDir(nx, ny, z + 0.4),
+      const a = getNoiseDir(nx, ny, z + 0.9),
         b = getNoiseDir(nx, ny, z + 0.8);
       const out = [0, 0, 0, 0];
       out[a] += 1;
@@ -271,7 +271,7 @@ function addAlreadyKnown(step) {
       v => v.split("-")[0] === "0000" && v.split("-")[1] !== "0000"
     );
 
-  if (entrances.length < 2) return step;
+  if (entrances.length < 3) return step;
   else {
     const [width, height] = getSize(grid),
       newStep = clone(step),
@@ -281,6 +281,7 @@ function addAlreadyKnown(step) {
       row.forEach((cell, x) => {
         const str = cell2string(cell);
         if (str === "0000-0000" && prng() < 0.05) {
+          console.log("addin", y, x);
           const newValue = entrances[Math.floor(prng() * entrances.length)];
           newGrid[y][x] = string2cell(newValue);
         }
@@ -304,7 +305,7 @@ function makeGridSeq(start, n, ec, z = 0) {
       unknowns = getUnknowns(prev, next);
 
     let tries = 0;
-    while (unknowns.length > targetUnknowns && tries++ < 100) {
+    while (unknowns.length !== targetUnknowns && tries++ < 1000) {
       next = getNextInSeq(prev, n + z + tries);
       unknowns = getUnknowns(prev, next);
     }
@@ -333,7 +334,7 @@ function makeGridSeq(start, n, ec, z = 0) {
       //console.log("adding", unknowns);
     }
 
-    added = addAlreadyKnown(added);
+    //added = addAlreadyKnown(added);
 
     seq.push(added);
   }
@@ -360,7 +361,7 @@ function evaluate(seq, print) {
         }
       })
     );
-    print && console.log(display.asciiGrid(grid));
+    //print && console.log(display.asciiGrid(grid));
     if (unknowns > 1) {
       failed = true;
       //throw "oh";
@@ -380,8 +381,8 @@ function evaluate(seq, print) {
     count,
     avg,
     vari: vari,
-    score: _.values(used).filter(v => v > 10).length + avg / 2,
-    used: _.values(used)
+    score: _.values(used).filter(v => v > 5).length + avg / 2,
+    used: used
   };
 }
 
@@ -405,7 +406,6 @@ function makeRandSeq(start, n) {
 // fs.writeFileSync('media/rseq.json', JSON.stringify(s))
 
 
-
 // if (false) {
 //   let max = 0;
 //   while (1) {
@@ -420,19 +420,18 @@ function makeRandSeq(start, n) {
 //       if (/*used.length === 40 && */ !failed && score > max) {
 //         max = score;
 //         console.log(r, score);
-//       }
+//       } else if (!failed  && score > max * 0.9) console.log(r, score, "*");
 //     } catch (e) {}
 //   }
 // } else {
-//   let r = 96594309.23851529;
+//   let r = 61081479.75687055;
 //   prng = new Alea(r);
 //   const start = emptyGrid(7, 7);
 //   start[2][2][1] = [0, 0, 0, 3];
 //   const seq = makeGridSeq([start, { "0000-0003": 1 }], 60, 20, r);
 
 //   console.log(evaluate(seq, 1));
-//   //fs.writeFileSync('seq.json', JSON.stringify(seq))
-
+//   //fs.writeFileSync(`media/seq${r}.json`, JSON.stringify(seq))
 // }
 
 module.exports = {
@@ -440,3 +439,12 @@ module.exports = {
   cell2string,
   string2cell
 };
+
+//65886036.062342644
+
+//best: 1828505.660673585
+
+/* 
+61081479.75687055 31.23170731707317 //preddygud
+41635591.8588789 28.15853658536585
+*/

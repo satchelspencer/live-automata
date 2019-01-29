@@ -8,7 +8,8 @@
 			"<!(node -e \"require('nan')\")"
 		],
 		"libraries": [
-			"-lopencv_core -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_features2d -lopencv_calib3d -lopencv_photo -lopencv_objdetect -lopencv_ml -lopencv_video -lopencv_videoio -lopencv_videostab -lopencv_dnn -lopencv_face -lopencv_tracking -lopencv_xfeatures2d -lopencv_ximgproc -Wl,-rpath,/usr/local/Cellar/opencv/4.0.1/lib"
+			"-lopencv_core -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_features2d -lopencv_calib3d -lopencv_photo -lopencv_objdetect -lopencv_ml -lopencv_video -lopencv_videoio -lopencv_videostab -lopencv_dnn -lopencv_face -lopencv_tracking -lopencv_xfeatures2d -lopencv_ximgproc -Wl,-rpath,/usr/local/Cellar/opencv/4.0.1/lib",
+			"-framework opencl"
 		],
 		"sources": [
 			"src/index.cc",

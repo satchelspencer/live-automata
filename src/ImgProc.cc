@@ -45,6 +45,13 @@ NAN_METHOD(AddWeighted) {
   cv::addWeighted( * src1-> mat, alpha, *src2->mat, beta, gamma, * dest->mat);
 }
 
+NAN_METHOD(MulConstant) {
+  Mat * src1 = Nan::ObjectWrap::Unwrap<Mat>(info[0]->ToObject());
+  double gamma = info[1]->NumberValue();
+  Mat * dest = Nan::ObjectWrap::Unwrap<Mat>(info[2]->ToObject());
+  cv::multiply( * src1-> mat, gamma, * dest->mat);
+}
+
 NAN_METHOD(AbsDiff) {
   Mat * a = Nan::ObjectWrap::Unwrap<Mat>(info[0]->ToObject());
   Mat * b = Nan::ObjectWrap::Unwrap<Mat>(info[1]->ToObject());

@@ -21,6 +21,8 @@ NAN_METHOD(Threshold);
 
 NAN_METHOD(CvtColor);
 
+NAN_METHOD(And);
+
 NAN_METHOD(Max);
 
-NAN_METHOD(And);
+NAN_METHOD(MulConstant);
