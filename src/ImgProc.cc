@@ -24,7 +24,7 @@ NAN_METHOD(Subtract) {
 NAN_METHOD(Invert) {
   Mat * src = Nan::ObjectWrap::Unwrap<Mat>(info[0]->ToObject());
   Mat * dest = Nan::ObjectWrap::Unwrap<Mat>(info[1]->ToObject());
-  cv::subtract( cv::Scalar::all(255), * src->mat, * dest->mat);
+  cv::bitwise_not( * src->mat, * dest->mat);
 }
 
 NAN_METHOD(Multiply) {

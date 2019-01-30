@@ -1,9 +1,7 @@
 const cv = require("./");
 const grid = require("./grid");
 const fs = require("fs");
-const display = require("./display");
 const _ = require("lodash");
-cv.namedWindow("rendertest");
 
 const rootDir = "../FINALS_200",
   varCounts = _.mapValues(
@@ -17,7 +15,7 @@ const rootDir = "../FINALS_200",
     g => g.length
   );
 usages = {};
-//media/seq1828505.660673585.json
+
 const seq = JSON.parse(fs.readFileSync("media/rseq.json"))
     .slice(3)
     .map(step => {
@@ -38,7 +36,7 @@ maskVsize = 890;
 
 const x = seq[0][0].length,
   y = seq[0].length,
-  cs = 100,
+  cs = 200,
   outRatio = 1; //1.6,
 (s = cs * (maskVsize / maskSize)),
   (maskScale = cs / maskSize),
@@ -47,7 +45,7 @@ const x = seq[0][0].length,
   (period = Math.floor(20.57 * rate)),
   (T = 4 * rate),
   (len = period + T),
-  (F = 2 * rate);
+  (F = 0.25);
 
 const frameBorder = new cv.Mat(cs, cs, 16);
 cv.resize(mask, frameBorder);
@@ -81,42 +79,95 @@ function getMask(firstFrame, thisFrame, dest) {
   cv.cvtColor(dest, 8);
   cv.blur(dest, dest, cs / 10);
   cv.threshold(dest, dest, 5, 255);
-  cv.blur(dest, dest, cs / 7);
+  cv.blur(dest, dest, cs / 8);
 }
 
-let prevVideos = {},
-  nextVideos = {},
-  futureVideos = {},
-  fvKeys = []
-
-function showImage(canvas){
-  cv.imshow("6", canvas);
-  cv.waitKey(1);
+function applyMask(src, mask, dest) {
+  cv.multiply(src, mask, dest, 1 / 255);
 }
 
-function copyTo(a, b){
-  a.copyTo(b)
-}
-
-function initCapture(cell){
+function initCapture(cap, length) {
   const video = {
-    capture: new cv.VideoCapture(`${rootDir}/${cell}.mp4`),
+    capture: new cv.VideoCapture(cap),
     capFrame: new cv.Mat(ins, ins, 16),
-    sizedFrame: new cv.Mat(s, s, 16),
     firstFrame: new cv.Mat(s, s, 16),
-    mask: new cv.Mat(s, s, 16),
-    masked: new cv.Mat(s, s, 16)
-  }
+    buffer: _.range(length).map(() => {
+      return {
+        frame: new cv.Mat(s, s, 16),
+        mask: new cv.Mat(s, s, 16),
+        masked: new cv.Mat(s, s, 16)
+      };
+    })
+  };
+  video.capture.read(video.capFrame);
+  cv.resize(video.capFrame, video.firstFrame);
   return video;
 }
 
-function render(frame){  
-  let t = new Date().getTime()
+function capture(video, frameNumber, mask){
+  const thisFrame = video.buffer[frameNumber];
+  video.capture.read(video.capFrame);
+  cv.resize(video.capFrame, thisFrame.frame);
+  if (mask) {
+    getMask(video.firstFrame, thisFrame.frame, thisFrame.mask);
+    applyMask(thisFrame.frame, thisFrame.mask, thisFrame.masked);
+  }
+}
+
+function drawRoi(roi, Tfrac, nextFrame, prevFrame) {
+  if (Tfrac !== -1) {
+    const ITfrac = 1 - Tfrac,
+      { bg, fg, mask, overlapMask, invOverlapMask } = roi;
+
+    cv.add(nextFrame.mask, prevFrame.mask, mask);
+    cv.invert(mask, mask);
+
+    nextFrame.frame.copyTo(bg);
+
+    if (Tfrac < F) {
+      const Ffrac = Tfrac / F;
+      cv.addWeighted(bg, Ffrac, prevFrame.frame, 1 - Ffrac, 0, bg);
+    }
+
+    if (Tfrac > 1 - F) {
+      const Ffrac = Math.max(ITfrac / F, 0);
+      cv.addWeighted(bg, Ffrac, nextFrame.frame, 1 - Ffrac, 0, bg);
+    }
+
+    /* get composite of bg and fg */
+    applyMask(bg, mask, bg);
+    cv.add(nextFrame.masked, prevFrame.masked, fg);
+    cv.add(fg, bg, bg);
+
+    /* find overlapping areas */
+    cv.addWeighted(nextFrame.mask, 0.5, prevFrame.mask, 0.5, -128, overlapMask);
+    cv.mulConstant(overlapMask, 2, overlapMask);
+    cv.invert(overlapMask, invOverlapMask);
+
+    /* compute cossfade of prevand next and mask it to overlapped areas */
+    cv.addWeighted(nextFrame.masked, Tfrac, prevFrame.masked, ITfrac, 0, fg);
+    applyMask(fg, overlapMask, fg);
+
+    /* remove overlapped areas from bg and replace them with crossfaded */
+    applyMask(bg, invOverlapMask, bg);
+    cv.add(fg, bg, bg);
+  } else nextFrame.frame.copyTo(roi.bg);
+}
+
+let prevVideos = {},
+  nextVideos = {};
+
+let ft = new Date().getTime();
+function render(frame) {
+  let t = new Date().getTime();
+  console.log(t - ft);
+  ft = t;
+
   const frameCurrent = frame % period,
     stepIndex = Math.floor(frame / period),
     nextStep = seq[stepIndex],
     prevStep = seq[stepIndex - 1],
-    futureStep = seq[stepIndex+1];
+    Tfrac = prevStep && frameCurrent < T ? frameCurrent / T : -1;
 
   if (frameCurrent === 0) {
     _.values(prevVideos).forEach(video => video.capture.release());
@@ -125,125 +176,32 @@ function render(frame){
     nextVideos = {};
     nextStep.forEach(row =>
       row.forEach(cell => {
-        if (!nextVideos[cell]) {
-          nextVideos[cell] = futureVideos[cell] || initCapture(cell);
-        }
+        if (!nextVideos[cell]) nextVideos[cell] = initCapture(`${rootDir}/${cell}.mp4`, 1);
       })
     );
-    futureVideos = {}
-    fvKeys = []
-    futureStep.forEach(row =>
-      row.forEach(cell => {
-        if(futureVideos[cell] === undefined){
-          futureVideos[cell] = 0
-          fvKeys.push(cell)
-        }
-      })
-    );
-    
   }
 
-  if(frameCurrent > T){
-    const fvIndex = Math.floor(((frameCurrent-T)/(period-T)) * fvKeys.length),
-    cell = fvKeys[fvIndex]
-    if(!futureVideos[cell]){
-      futureVideos[cell] = initCapture(cell)
-    }
-  }
-
-  /* read prev frames */
-  if (prevStep && frameCurrent < T)
-    _.values(prevVideos).forEach(video => {
-      video.capture.read(video.capFrame);
-      cv.resize(video.capFrame, video.sizedFrame);
-      getMask(video.firstFrame, video.sizedFrame, video.mask);
-      cv.multiply(video.sizedFrame, video.mask, video.masked, 1 / 255);
-    });
-
-  /* read next frames */
-  _.values(nextVideos).forEach(video => {
-    video.capture.read(video.capFrame);
-    cv.resize(video.capFrame, video.sizedFrame);
-    if (frameCurrent === 0) video.sizedFrame.copyTo(video.firstFrame);
-    if (prevStep && frameCurrent < T) {
-      getMask(video.firstFrame, video.sizedFrame, video.mask);
-      cv.multiply(video.sizedFrame, video.mask, video.masked, 1 / 255);
-    }
-  });
+  if (prevStep && frameCurrent < T) _.values(prevVideos).forEach(video => capture(video, 0, true));
+  _.values(nextVideos).forEach(video => capture(video, 0,  prevStep && frameCurrent < T))
 
   /* draw */
   nextStep.forEach((row, j) =>
     row.forEach((cell, i) => {
-      if (prevStep && frameCurrent < T) {
-        const prevCell = prevStep[j][i],
-          Tfrac = frameCurrent / T,
-          nextVid = nextVideos[cell],
-          prevVid = prevVideos[prevCell];
+      const prevCell = prevStep && prevStep[j][i],
+        nextFrame = nextVideos[cell].buffer[0],
+        prevFrame = prevStep && prevVideos[prevCell].buffer[0],
+        roi = rois[j][i];
 
-        cv.add(nextVid.mask, prevVid.mask, rois[j][i].mask);
-        cv.invert(rois[j][i].mask, rois[j][i].mask);
-
-        cv.addWeighted(
-          prevVid.firstFrame,
-          1 - Tfrac,
-          nextVid.firstFrame,
-          Tfrac,
-          0,
-          rois[j][i].bg
-        );
-        if (frameCurrent < F) {
-          const Ffrac = frameCurrent / F;
-          cv.addWeighted(
-            rois[j][i].bg,
-            Ffrac,
-            prevVid.sizedFrame,
-            1 - Ffrac,
-            0,
-            rois[j][i].bg
-          );
-        }
-
-        if (frameCurrent > T - F) {
-          const Ffrac = Math.max((T - frameCurrent) / F, 0);
-          cv.addWeighted(
-            rois[j][i].bg,
-            Ffrac,
-            nextVid.sizedFrame,
-            1 - Ffrac,
-            0,
-            rois[j][i].bg
-          );
-        }
-
-        /* get composite of bg and fg */
-        cv.multiply(rois[j][i].bg, rois[j][i].mask, rois[j][i].bg, 1 / 255);
-        cv.add(nextVid.masked, prevVid.masked, rois[j][i].fg);
-        cv.add(rois[j][i].fg, rois[j][i].bg, rois[j][i].bg);
-        
-        /* find overlapping areas */
-        cv.addWeighted(nextVid.mask, 0.5, prevVid.mask, 0.5, -128, rois[j][i].overlapMask)
-        cv.mulConstant(rois[j][i].overlapMask, 2, rois[j][i].overlapMask);
-        cv.invert( rois[j][i].overlapMask,  rois[j][i].invOverlapMask)
-
-        /* compute cossfade of prevand next and mask it to overlapped areas */
-        cv.addWeighted(nextVid.masked, Tfrac, prevVid.masked, 1-Tfrac, 0, rois[j][i].fg);
-        cv.multiply(rois[j][i].fg, rois[j][i].overlapMask, rois[j][i].fg, 1 / 255);
-        
-        /* remove overlapped areas from bg and replace them with crossfaded */
-        cv.multiply(rois[j][i].bg, rois[j][i].invOverlapMask, rois[j][i].bg, 1 / 255);
-        cv.add(rois[j][i].fg, rois[j][i].bg, rois[j][i].bg);
-
-      } else copyTo(nextVideos[cell].sizedFrame, rois[j][i].bg);
+      drawRoi(roi, Tfrac, nextFrame, prevFrame);
     })
   );
 
-  showImage(canvas)
+  cv.imshow("lautmat", canvas);
+  cv.waitKey(1);
 
   let nt = new Date().getTime(),
-  diff = nt-t
-  //if(t) console.log(diff)
+    diff = nt - t;
 
-  setTimeout(() => render(frame+1), 0)
+  setTimeout(() => render(frame + 1), 0);
 }
-render(0)
-
+render(0);
