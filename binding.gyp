@@ -17,7 +17,8 @@
 			"src/Window.cc",
 			"src/Image.cc",
 			"src/ImgProc.cc",
-			"src/VideoCapture.cc"
+			"src/VideoCapture.cc",
+			"src/VideoWriter.cc"
 		],
 			"cflags" : [
 			"-std=c++11"

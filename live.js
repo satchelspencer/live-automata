@@ -7,16 +7,16 @@ const player = require('play-sound')(opts = {})
 
 const warnOffset = 6.03*1000
 function playWarning(){
-  player.play('./media/123.mp3', () => {})
+  //player.play('./media/123.mp3', () => {})
 }
 
 const rseq = JSON.parse(fs.readFileSync("media/seq61081479.75687055.json")),
-  framerate = 15,
+  framerate = 20,
   period = Math.floor(20 * framerate), //20.57
   transLen = 4 * framerate,
   videoLen = period + transLen,
   config = {
-    cellSize: 140,
+    cellSize: 150,
     outRatio: 1,
     inputSize: [1260, 720],
     fadeRatio: 0.25,
@@ -87,6 +87,6 @@ function render(frame) {
   const isLastFrame = frameCurrent + 1 === videoLen,
   desiredDelay = isLastFrame ? 10000 : (1 / framerate) * 1000;
   if(isLastFrame) setTimeout(playWarning, desiredDelay-warnOffset)
-  setTimeout(() => render(frame + 1), desiredDelay - diff);
+  setTimeout(() => render(frame + 1), 0)//desiredDelay - diff);
 }
 render(0);

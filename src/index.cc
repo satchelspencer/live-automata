@@ -4,11 +4,14 @@
 #include "Image.h"
 #include "ImgProc.h"
 #include "VideoCapture.h"
+#include "VideoWriter.h"
 
 NAN_MODULE_INIT(InitModule) {  
   Mat::Init(target);
 
   VideoCapture::Init(target);
+
+  VideoWriter::Init(target);
 
   target->Set(
     Nan::New("namedWindow").ToLocalChecked(),

@@ -132,7 +132,10 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
 
       /* find overlapping areas */
       cv.addWeighted(nextFrame.mask, 0.5, prevFrame.mask, 0.5, -128, overlapMask);
+      cv.threshold(overlapMask, overlapMask, 1, 255);
+      cv.blur(overlapMask, overlapMask, cellSize / 8);
       cv.mulConstant(overlapMask, 2, overlapMask);
+      // cv.threshold(overlapMask, overlapMask, 200, 255);
       cv.invert(overlapMask, invOverlapMask);
 
       /* compute cossfade of prevand next and mask it to overlapped areas */
@@ -142,6 +145,8 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
       /* remove overlapped areas from bg and replace them with crossfaded */
       applyMask(bg, invOverlapMask, bg);
       cv.add(fg, bg, bg);
+
+      //fg.copyTo(bg)
     } else nextFrame.frame.copyTo(roi.bg);
   }
 
@@ -152,6 +157,8 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
     frameBuffer,
     capture,
     drawRoi,
-    canvas
+    canvas,
+    width,
+    height
   };
 };

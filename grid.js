@@ -127,12 +127,12 @@ function getNoiseDir(x, y, z) {
 }
 
 function noiseGrid(x, y, z) {
-  const scale = 1 / 5;
+  const scale = 1 / 2;
   const grid = _.range(y).map(i =>
     _.range(x).map(j => {
       const nx = j * scale,
         ny = i * scale;
-      const a = getNoiseDir(nx, ny, z + 0.9),
+      const a = getNoiseDir(nx, ny, z + 0.4),
         b = getNoiseDir(nx, ny, z + 0.8);
       const out = [0, 0, 0, 0];
       out[a] += 1;
@@ -397,13 +397,13 @@ function makeRandSeq(start, n) {
   return seq;
 }
 
-// const start = emptyGrid(7, 7);
+// const start = emptyGrid(20,20);
 // start[2][2][1] = [0, 0, 0, 3];
-// const s = makeRandSeq([start, { "0000-0003": 1 }], 10);
+// const s = makeRandSeq([start, { "0000-0003": 1 }], 50);
 // s.forEach((step, i) => {
 //   console.log(display.asciiGrid(step[0]));
 // });
-// fs.writeFileSync('media/rseq.json', JSON.stringify(s))
+// fs.writeFileSync('media/rseqbig.json', JSON.stringify(s))
 
 
 // if (false) {

@@ -1,7 +1,7 @@
 const cv = require("./");
 const fs = require("fs");
 const _ = require("lodash");
-const createRenderer = require('./render')
+const createRenderer = require("./render");
 
 const rootDir = "../FINALS_200",
   varCounts = _.mapValues(
@@ -17,24 +17,33 @@ const rootDir = "../FINALS_200",
   rseq = JSON.parse(fs.readFileSync("media/rseq.json")).slice(0),
   framerate = 15,
   period = Math.floor(20.57 * framerate),
-  transLen = 4 * framerate
-  config = {
-    cellSize: 140,
-    outRatio: 1,
-    inputSize: [200,200],
-    fadeRatio: 0.25,
-    mask: cv.imread("media/mask.jpg"),
-    maskSize: 1209,
-    maskVx: 62,
-    maskVy: 71,
-    maskVsize: 890
-  };
+  transLen = 4 * framerate;
+config = {
+  cellSize: 200,
+  outRatio: 1,
+  inputSize: [200, 200],
+  fadeRatio: 0.25,
+  mask: cv.imread("media/mask.jpg"),
+  maskSize: 1209,
+  maskVx: 62,
+  maskVy: 71,
+  maskVsize: 895,
+  vout: "out.mpeg"
+};
 
-const { seq, rois, initCapture, frameBuffer, capture, drawRoi, canvas } = createRenderer(
-  rseq,
-  config,
-  varCounts
-);
+const {
+  seq,
+  rois,
+  initCapture,
+  frameBuffer,
+  capture,
+  drawRoi,
+  canvas,
+  width,
+  height
+} = createRenderer(rseq, config, varCounts);
+
+const writer = new cv.VideoWriter("out.mpeg", width, height);
 
 let prevVideos = {},
   nextVideos = {};
@@ -68,10 +77,16 @@ function render(frame) {
   }
 
   _.values(nextVideos).forEach(video =>
-    capture(video.video, video.buffer[0], prevStep && frameCurrent < transLen && video.video.firstFrame)
+    capture(
+      video.video,
+      video.buffer[0],
+      prevStep && frameCurrent < transLen && video.video.firstFrame
+    )
   );
   if (prevStep && frameCurrent < transLen)
-    _.values(prevVideos).forEach(video => capture(video.video, video.buffer[0], video.video.firstFrame));
+    _.values(prevVideos).forEach(video =>
+      capture(video.video, video.buffer[0], video.video.firstFrame)
+    );
 
   /* draw */
   nextStep.forEach((row, j) =>
@@ -84,8 +99,10 @@ function render(frame) {
     })
   );
 
-  cv.imshow("lautmat", canvas);
-  cv.waitKey(1);
+
+  writer.write(canvas);
+  // cv.imshow("lautmat", canvas);
+  // cv.waitKey(1);
 
   let nt = new Date().getTime(),
     diff = nt - t;
