@@ -5,6 +5,7 @@
 #include "ImgProc.h"
 #include "VideoCapture.h"
 #include "VideoWriter.h"
+#include "PipeWriter.h"
 
 NAN_MODULE_INIT(InitModule) {  
   Mat::Init(target);
@@ -12,6 +13,8 @@ NAN_MODULE_INIT(InitModule) {
   VideoCapture::Init(target);
 
   VideoWriter::Init(target);
+
+  PipeWriter::Init(target);
 
   target->Set(
     Nan::New("namedWindow").ToLocalChecked(),

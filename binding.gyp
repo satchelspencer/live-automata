@@ -3,7 +3,7 @@
 		"target_name": "opencv",
 		"defines":[],
 		"include_dirs" : [
-			"/usr/local/Cellar/opencv/4.0.1/include/opencv4",
+			"/usr/local/include/opencv4/",
 			"src",
 			"<!(node -e \"require('nan')\")"
 		],
@@ -18,7 +18,8 @@
 			"src/Image.cc",
 			"src/ImgProc.cc",
 			"src/VideoCapture.cc",
-			"src/VideoWriter.cc"
+			"src/VideoWriter.cc",
+			"src/PipeWriter.cc"
 		],
 			"cflags" : [
 			"-std=c++11"

@@ -14,15 +14,15 @@ const rootDir = "../FINALS_200",
     ),
     g => g.length
   ),
-  rseq = JSON.parse(fs.readFileSync("media/rseq.json")).slice(0),
+  rseq = JSON.parse(fs.readFileSync("media/rseq169.json")).slice(1),
   framerate = 15,
   period = Math.floor(20.57 * framerate),
   transLen = 4 * framerate;
 config = {
-  cellSize: 200,
+  cellSize: 240,
   outRatio: 1,
   inputSize: [200, 200],
-  fadeRatio: 0.25,
+  fadeRatio: 0.1,
   mask: cv.imread("media/mask.jpg"),
   maskSize: 1209,
   maskVx: 62,
@@ -43,7 +43,7 @@ const {
   height
 } = createRenderer(rseq, config, varCounts);
 
-const writer = new cv.VideoWriter("out.mpeg", width, height);
+const writer = new cv.VideoWriter("out4k.mpeg", width, height);
 
 let prevVideos = {},
   nextVideos = {};
@@ -58,6 +58,9 @@ function render(frame) {
     stepIndex = Math.floor(frame / period),
     nextStep = seq[stepIndex][0],
     prevStep = seq[stepIndex - 1] && seq[stepIndex - 1][0],
+    thisUsed = _.keys(seq[stepIndex][1]),
+    lastUsed = prevStep ? _.keys(seq[stepIndex - 1][1]) : [],
+    liveCell = _.difference(thisUsed, lastUsed)[0],
     Tfrac = prevStep && frameCurrent < transLen ? frameCurrent / transLen : -1;
 
   if (frameCurrent === 0) {
@@ -96,6 +99,7 @@ function render(frame) {
         prevFrame = prevStep && prevVideos[prevCell].buffer[0],
         roi = rois[j][i];
       drawRoi(roi, Tfrac, nextFrame, prevFrame);
+      //if(cell === liveCell)cv.invert(roi.bg, roi.bg);
     })
   );
 

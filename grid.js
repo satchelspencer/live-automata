@@ -10,7 +10,7 @@ const SimplexNoise = require("simplex-noise");
 const Alea = require("alea");
 const fs = require("fs");
 
-let prng = new Alea(7);
+let prng = new Alea(8.2);
 const simplex = new SimplexNoise(prng);
 
 function shuffle(arr) {
@@ -25,32 +25,32 @@ function shuffle(arr) {
 }
 
 var possibleIos = [
-  "1000",
   "1002",
   "1020",
   "1200",
-  "2000",
   "2001",
   "2010",
   "2100",
+  "0120",
+  "0102",
+  "0210",
+  "0012",
+  "0201",
+  "0021",
   "3000",
-  "0000",
+  "0300",
+  "0030",
+  "0003",
+  "2000",
   "0200",
   "0020",
   "0002",
   "0100",
-  "0300",
-  "0120",
-  "0102",
   "0010",
-  "0210",
-  "0030",
-  "0012",
   "0001",
-  "0201",
-  "0021",
-  "0003"
-];
+  "1000",
+  "0000"
+].reverse();
 
 function string2io(str) {
   return str.split("").map(s => parseInt(s, 10));
@@ -79,7 +79,9 @@ function conflicts(a, b) {
   else if (a === 3) return b !== 0;
 }
 
-const directions = [[0, -1], [-1, 0], [0, 1], [1, 0]];
+const directions = [[0, -1], [-1, 0], [0, 1], [1, 0]],
+  directionNames = ["top", "right", "bottom", "left"], //["top", "left", "bottom", "right"],
+  personNames = ["rick", "la"];
 
 function clone(grid) {
   return JSON.parse(JSON.stringify(grid));
@@ -102,12 +104,11 @@ function makeValidOutput(grid) {
           nextNeighbor = next[ny][nx],
           invDirection = (direction + 2) % 4,
           output = currentCell[1][direction],
-          dirname = ["top", "left", "bottom", "right"][direction];
+          dirname = directionNames[direction];
 
         const tubeIsUsed = output && neighbor[1][invDirection],
           wouldOverflowNext =
-            output &&
-            _.some(nextNeighbor[0], input => conflicts(input, output));
+            output && _.some(nextNeighbor[0], input => conflicts(input, output));
 
         if (tubeIsUsed || wouldOverflowNext) {
           // if(tubeIsUsed) console.log('    tube is used', dirname)
@@ -305,7 +306,7 @@ function makeGridSeq(start, n, ec, z = 0) {
       unknowns = getUnknowns(prev, next);
 
     let tries = 0;
-    while (unknowns.length !== targetUnknowns && tries++ < 1000) {
+    while (unknowns.length !== targetUnknowns && tries++ < 10000) {
       next = getNextInSeq(prev, n + z + tries);
       unknowns = getUnknowns(prev, next);
     }
@@ -344,14 +345,15 @@ function makeGridSeq(start, n, ec, z = 0) {
 function evaluate(seq, print) {
   const used = {};
   let failed = false;
-  seq.forEach(([grid, _], i) => {
+  const ng = seq.map(([grid, _], i) => {
     print && console.log(i, ":");
-
+    const lused = {};
     let unknowns = 0;
     grid.forEach(row =>
       row.forEach(cell => {
         const str = cell2string(cell);
         if (str == "0000-0000") return;
+        lused[str] = 1;
         if (!used[str]) {
           used[str] = 1;
           unknowns++;
@@ -361,11 +363,12 @@ function evaluate(seq, print) {
         }
       })
     );
-    //print && console.log(display.asciiGrid(grid));
+    print && console.log(display.asciiGrid(grid));
     if (unknowns > 1) {
       failed = true;
       //throw "oh";
     }
+    return [grid, lused];
   });
 
   const count = _.sum(_.values(used)),
@@ -377,11 +380,12 @@ function evaluate(seq, print) {
   });
 
   return {
+    grid: ng,
     failed,
     count,
     avg,
     vari: vari,
-    score: _.values(used).filter(v => v > 5).length + avg / 2,
+    score: (1/vari) *avg ,
     used: used
   };
 }
@@ -397,16 +401,34 @@ function makeRandSeq(start, n) {
   return seq;
 }
 
-// const start = emptyGrid(20,20);
+function cell2text(cell) {
+  const dirs = [[-1, -1], [-1, -1]];
+  cell.map((io, i) => {
+    io.forEach((v, j) => {
+      if (v === 1 || v === 3) dirs[i][0] = j;
+      if (v === 2 || v === 3) dirs[i][1] = j;
+    });
+  });
+  return dirs.map((dir, diri) => {
+    return dir.map((d, i) => {
+      const adj = dirs[(diri + 1) % dirs.length][i];
+      return directionNames[d] || (adj === -1 ? "stay" : "back");
+    });
+  });
+}
+
+// const rseq = JSON.parse(fs.readFileSync("media/seq61081479.75687055.json"))
+// console.log(evaluate(rseq, 1))
+
+// const start = emptyGrid(16,9);
 // start[2][2][1] = [0, 0, 0, 3];
 // const s = makeRandSeq([start, { "0000-0003": 1 }], 50);
 // s.forEach((step, i) => {
 //   console.log(display.asciiGrid(step[0]));
 // });
-// fs.writeFileSync('media/rseqbig.json', JSON.stringify(s))
+// fs.writeFileSync('media/rseq169.json', JSON.stringify(s))
 
-
-// if (false) {
+// if (0) {
 //   let max = 0;
 //   while (1) {
 //     try {
@@ -424,20 +446,20 @@ function makeRandSeq(start, n) {
 //     } catch (e) {}
 //   }
 // } else {
-//   let r = 61081479.75687055;
+//   let r = 12631265.110279078;
 //   prng = new Alea(r);
 //   const start = emptyGrid(7, 7);
 //   start[2][2][1] = [0, 0, 0, 3];
 //   const seq = makeGridSeq([start, { "0000-0003": 1 }], 60, 20, r);
-
 //   console.log(evaluate(seq, 1));
-//   //fs.writeFileSync(`media/seq${r}.json`, JSON.stringify(seq))
+//   fs.writeFileSync(`media/seq${r}.json`, JSON.stringify(seq))
 // }
 
 module.exports = {
   makeGridSeq,
   cell2string,
-  string2cell
+  string2cell,
+  cell2text
 };
 
 //65886036.062342644
@@ -448,3 +470,156 @@ module.exports = {
 61081479.75687055 31.23170731707317 //preddygud
 41635591.8588789 28.15853658536585
 */
+
+function hasConflict(io) {
+  for (var i = 0; i < io.length; i++) {
+    for (var j = 0; j < io.length; j++) {
+      if (i !== j && conflicts(io[i], io[j])) return true;
+    }
+  }
+  return false;
+}
+
+function computeNext(width, height, step) {
+  let next = {};
+  for (var pos in step) {
+    const cell = string2cell(step[pos]);
+    const [x, y] = pos.split(",").map(x => parseInt(x));
+    for (let di = 0; di < cell[1].length; di++) {
+      const value = cell[1][di];
+      if (value) {
+        const opposingDirI = (di + 2) % 4;
+        const [dx, dy] = directions[di];
+        const nx = (x + dx + width) % width,
+          ny = (y + dy + height) % height;
+
+        const coord = nx + "," + ny;
+        const currentNeighbor = step[coord] && string2cell(step[coord]);
+        const tubeUsed = currentNeighbor && currentNeighbor[1][opposingDirI];
+        if (tubeUsed) return false;
+        next[coord] = next[coord] || [[0, 0, 0, 0], [0, 0, 0, 0]];
+        next[coord][0][opposingDirI] = value;
+      }
+    }
+  }
+  next = _.mapValues(next, n => cell2string(n));
+  return next;
+}
+
+//console.log(computeNext(7,7,{ '3,3': '0000-0020', '3,4': '1000-0200' }))
+
+// node: {cell:[io,io], pos: [x,y], children: []}
+// step: { [x+'-'+y]: [io, io]}
+let m = 0;
+function createSeqTree(width, height, entrance, used, n) {
+  const thisios = [...shuffle(possibleIos)];
+  //if(_.keys(entrance).length > 10) thisios[0] = '0000'
+  if (used.length > m) {
+    m = used.length;
+    //console.log(m);
+  }
+  if (!n) return [];
+  else {
+    const cells = _.values(entrance);
+    const possibleOuts = [];
+    if (_.some(cells, cell => hasConflict(cell[0]))) return false;
+    const uniqEntranceIos = _.uniqBy(cells.map(v => v[0]), v => v + "");
+    for (let i = 0; i < uniqEntranceIos.length; i++) {
+      const addnlIo = uniqEntranceIos[i];
+      //console.log('addtnl', addnlIo)
+      /* is there an entrance here that cannot be filled */
+      const hasMissing = _.some(uniqEntranceIos, io => {
+        const sio = io2string(io);
+        return !(
+          _.isEqual(io, addnlIo) ||
+          _.some(used, cell => {
+            return cell.indexOf(sio) === 0;
+          })
+        );
+      });
+
+      if (hasMissing) continue;
+      for (let j = 0; j < thisios.length; j++) {
+        const exitIo = string2io(thisios[j]);
+        //console.log('exit', exitIo)
+        const availableCells = [cell2string([addnlIo, exitIo]), ...used];
+        const possibleCells = _.mapValues(entrance, cell => {
+          return _.isEqual(cell[0], addnlIo)
+            ? [availableCells[0]]
+            : _.compact(
+                availableCells.map(acell => {
+                  return _.isEqual(cell[0], string2cell(acell)[0]) && acell;
+                })
+              );
+        });
+        const lens = _.values(possibleCells).map(c => c.length);
+        const combinations = lens.reduce((a, b) => a * b);
+        //console.log('combinations', Math.min(combinations, 200))
+        const indicies = lens.map(() => 0);
+        for (let c = 0; c < Math.min(combinations, 10); c++) {
+          for (let x = 0; x < lens.length; x++) {
+            indicies[x] = (indicies[x] + 1) % lens[x];
+            if (indicies[x]) break;
+          }
+          let ci = 0;
+          const output = _.mapValues(possibleCells, cell => cell[indicies[ci++]]);
+          //console.log(output)
+          const next = _.mapValues(computeNext(width, height, output), c =>
+            string2cell(c)
+          );
+          if (!next) continue; //next has a tibe conflict. skip this one
+          //if(_.keys(next).length < _.keys(entrance).length) continue;
+          const tail = createSeqTree(width, height, next, availableCells, n - 1);
+          if (!tail) continue;
+          //possibleOuts.push([output, ...tail])
+          const res = [output, ...tail];
+          // if(_.keys(next).length < Math.log2(used.length)){
+          //   console.log(Math.log2(used.length))
+          //   continue;
+          // }
+          return res;
+        }
+      }
+    }
+    return false;
+    // if(!possibleOuts) return false;
+    // else return _.maxBy(possibleOuts, o => _.keys(_.last(o)).length)
+  }
+}
+
+function createGridSeq(width, height, seq) {
+  return seq.map(items => {
+    const grid = emptyGrid(width, height);
+    _.each(items, (val, pos) => {
+      const [x, y] = pos.split(",").map(x => parseInt(x));
+      grid[y][x] = string2cell(val);
+    });
+    return [grid];
+  });
+}
+
+// let max = 0;
+// while (1) {
+//   const r = Math.floor(Math.random() * 100000000);
+//   prng = new Alea(r);
+//   const t = new Date().getTime();
+//   const seq = createSeqTree(
+//     7,
+//     7,
+//     {
+//       "3,3": [[0, 0, 0, 0], [0, 0, 0, 0]]
+//     },
+//     [],
+//     40
+//   );
+
+//   const avg = _.mean(seq.map(s => _.uniq(_.values(s)).length))
+//   if (avg > max) {
+//     max = avg;
+//     console.log(avg, r);
+//     const gseq = createGridSeq(7, 7, seq);
+//     const eval = evaluate(gseq, 0);
+//     fs.writeFileSync(`media/seq${r}.json`, JSON.stringify(eval.grid));
+//   }
+//   //console.log(JSON.stringify(seq, null, 2));
+// }

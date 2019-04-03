@@ -1,10 +1,9 @@
 #include <nan.h>
-#include "opencv2/videoio.hpp"
 
-class VideoWriter : public Nan::ObjectWrap
+class PipeWriter : public Nan::ObjectWrap
 {
   public:
-   cv::VideoWriter * writer;
+   int fd;
 
 
   static NAN_MODULE_INIT(Init);

@@ -32,8 +32,8 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
     width = x * cellSize * outRatio,
     height = y * cellSize,
     canvas = new cv.Mat(height, width, 16),
-    oleft = (width - height) / 2;
-
+    oleft = outRatio === 1?0:(width - height) / 2;
+  
   const frameBorder = new cv.Mat(cellSize, cellSize, 16);
   cv.resize(mask, frameBorder);
 
@@ -108,23 +108,15 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
       const ITfrac = 1 - Tfrac,
         { bg, fg, mask, overlapMask, invOverlapMask, prevMasked, nextMasked } = roi;
 
+      /* compute mask of both areas from prev and next */
       cv.add(nextFrame.mask, prevFrame.mask, mask);
       cv.invert(mask, mask);
 
+      /* base layer is next frame */
       nextFrame.frame.copyTo(bg);
-
-      if (Tfrac < fadeRatio) {
-        const Ffrac = Tfrac / fadeRatio;
-        cv.addWeighted(bg, Ffrac, prevFrame.frame, 1 - Ffrac, 0, bg);
-      }
-      if (Tfrac > 1 - fadeRatio) {
-        const Ffrac = Math.max(ITfrac / fadeRatio, 0);
-        cv.addWeighted(bg, Ffrac, nextFrame.frame, 1 - Ffrac, 0, bg);
-      }
-
+    
       /* get composite of bg and fg */
       applyMask(bg, mask, bg);
-
       applyMask(nextFrame.frame, nextFrame.mask, nextMasked);
       applyMask(prevFrame.frame, prevFrame.mask, prevMasked);
       cv.add(nextMasked, prevMasked, fg);
@@ -135,10 +127,9 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
       cv.threshold(overlapMask, overlapMask, 1, 255);
       cv.blur(overlapMask, overlapMask, cellSize / 8);
       cv.mulConstant(overlapMask, 2, overlapMask);
-      // cv.threshold(overlapMask, overlapMask, 200, 255);
       cv.invert(overlapMask, invOverlapMask);
 
-      /* compute cossfade of prevand next and mask it to overlapped areas */
+      /* compute cossfade of prev and next and mask it to overlapped areas */
       cv.addWeighted(nextFrame.frame, Tfrac, prevFrame.frame, ITfrac, 0, fg);
       applyMask(fg, overlapMask, fg);
 
@@ -146,7 +137,15 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
       applyMask(bg, invOverlapMask, bg);
       cv.add(fg, bg, bg);
 
-      //fg.copyTo(bg)
+      /* blend in smoothly with prev frame and next frame */
+      if (Tfrac < fadeRatio) {
+        const Ffrac = Tfrac / fadeRatio;
+        cv.addWeighted(bg, Ffrac, prevFrame.frame, 1 - Ffrac, 0, bg);
+      }else if (Tfrac > 1 - fadeRatio) {
+        const Ffrac = Math.max(ITfrac / fadeRatio, 0);
+        cv.addWeighted(bg, Ffrac, nextFrame.frame, 1 - Ffrac, 0, bg);
+      }
+
     } else nextFrame.frame.copyTo(roi.bg);
   }
 
