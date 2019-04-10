@@ -1,0 +1,106 @@
+<html>
+  <head>
+    <title>audioplay</title>
+    <style type="text/css">
+      Body{
+        font-size: 30px;
+        font-family: sans-serif;
+      }
+      button{
+        font-size: 30px;
+      }
+      #connectstate{
+
+      }
+    </style>
+  </head>
+  <body>
+    <audio id="sample"></audio>
+    <audio id="doowop" controls src="samples/doowopfade2.mp3"></audio>
+    <div id="connectstate" style="color:red;">disconnected</div>
+    <button id="startStop">start</button>
+    <div id="delay"> - </div>
+    <div id="dancerState"> - </div>
+    <div id="stepIndex"> - </div>
+    <div id="frameNumber"> - </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="text/javascript">
+      const sample = document.getElementById('sample')
+      const socket = io.connect("http://localhost:1111/");
+      
+      let playing = false
+      let shouldReset = false
+      /* sample play */
+      socket.on("play", sound =>{
+        sample.src = `samples/${sound}.mp3`
+        sample.play()
+        playing = true
+        sample.onended = () => {
+          playing = false
+          socket.emit('playdone')
+        }
+      });
+
+      /* play pause */
+      let started = false
+      const startStop = document.getElementById('startStop')
+      startStop.onclick = () => {
+        socket.emit('playpause')
+        if(playing && started) sample.pause()
+        if(playing && !started) sample.play()
+        started = !started
+        if(started) startStop.innerHTML = "stop"
+        else startStop.innerHTML = "start"
+      }
+
+
+      const connectState = document.getElementById('connectstate')
+      socket.on('connect', () => {
+        if(shouldReset) window.location.reload()
+        else{
+          connectState.style.color = 'green'
+          connectState.innerHTML = 'connected'
+        }       
+      })
+      socket.on('disconnect', () => {
+        shouldReset = true
+        connectState.style.color = 'red'
+        connectState.innerHTML = 'disconnected'
+        dancerState.innerHTML = ' - '
+        delay.innerHTML = ' - '
+        sample.pause()
+        sample.src = ""
+      })
+
+      const dancerState = document.getElementById('dancerState')
+      socket.on('dancerState', value => {
+        dancerState.innerHTML = `dancers: ${value}`
+      })
+
+      const frameNumber = document.getElementById('frameNumber')
+      socket.on('frameNumber', number => {
+        frameNumber.innerHTML = `frame: ${number}`
+      })
+
+      const delay = document.getElementById('delay')
+      socket.on('delay', value => {
+        delay.innerHTML = Math.round(1/(value/1000)*10)/10+' fps'
+      })
+
+      const stepIndex = document.getElementById('stepIndex')
+      socket.on('stepIndex', step => {
+        stepIndex.innerHTML = `step: ${step}`
+      })
+
+      const doowop = document.getElementById('doowop');
+      socket.on('startMusic', () => {
+        doowop.currentTime = 0
+        doowop.play()
+      })
+      socket.on('stopMusic', () => {
+        doowop.pause()
+        window.location.reload()
+      })
+    </script>
+  </body>
+</html>

@@ -3,7 +3,7 @@ const fs = require("fs");
 const _ = require("lodash");
 const createRenderer = require("./render");
 
-const rootDir = "../FINALS_200",
+const rootDir = "../FINALS_200",//"/Volumes/POST_VERBAL/FINALS_892"//
   varCounts = _.mapValues(
     _.groupBy(fs.readdirSync(rootDir), p =>
       p
@@ -14,12 +14,12 @@ const rootDir = "../FINALS_200",
     ),
     g => g.length
   ),
-  rseq = JSON.parse(fs.readFileSync("media/rseq169.json")).slice(1),
+  rseq = JSON.parse(fs.readFileSync("media/130.json")).slice(0),
   framerate = 15,
   period = Math.floor(20.57 * framerate),
   transLen = 4 * framerate;
 config = {
-  cellSize: 240,
+  cellSize: 50,
   outRatio: 1,
   inputSize: [200, 200],
   fadeRatio: 0.1,
@@ -42,16 +42,14 @@ const {
   width,
   height
 } = createRenderer(rseq, config, varCounts);
-
-const writer = new cv.VideoWriter("out4k.mpeg", width, height);
-
+const writer = new cv.VideoWriter("media/outtest.mpeg", width, height);
 let prevVideos = {},
   nextVideos = {};
 
 let ft = new Date().getTime();
 function render(frame) {
   let t = new Date().getTime();
-  console.log(t - ft);
+  //console.log(t - ft);
   ft = t;
 
   const frameCurrent = frame % period,
@@ -64,6 +62,7 @@ function render(frame) {
     Tfrac = prevStep && frameCurrent < transLen ? frameCurrent / transLen : -1;
 
   if (frameCurrent === 0) {
+    console.log(stepIndex)
     _.values(prevVideos).forEach(video => video.video.capture.release());
     prevVideos = nextVideos;
 

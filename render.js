@@ -2,6 +2,8 @@ const cv = require("./");
 const grid = require("./grid");
 const _ = require("lodash");
 
+const bufferCache = {}
+
 module.exports = function createRenderer(rseq, config, varCounts = {}) {
   const {
       cellSize,
@@ -9,6 +11,8 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
       inputSize,
       fadeRatio,
       mask,
+      liveMask,
+      blackMask,
       maskSize,
       maskVx,
       maskVy,
@@ -37,6 +41,12 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
   const frameBorder = new cv.Mat(cellSize, cellSize, 16);
   cv.resize(mask, frameBorder);
 
+  const liveFrameBorder = new cv.Mat(cellSize, cellSize, 16);
+  cv.resize(liveMask || mask, liveFrameBorder);
+
+  const blackFrame = new cv.Mat(cellSize, cellSize, 16);
+  cv.resize(blackMask || mask, blackFrame);//cv.resize(blackMask || mask, blackFrame);
+
   const rois = _.range(y).map(j =>
     _.range(x).map(i => {
       const frameRoi = canvas.roi(oleft + i * cellSize, j * cellSize, cellSize, cellSize);
@@ -48,6 +58,7 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
           s,
           s
         ),
+        frame: frameRoi,
         fg: new cv.Mat(s, s, 16),
         mask: new cv.Mat(s, s, 16),
         overlapMask: new cv.Mat(s, s, 16),
@@ -72,6 +83,8 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
   }
 
   function initCapture(cap) {
+    //console.log('UUU', cap)
+
     const capture = new cv.VideoCapture(cap),
     capFrame = new cv.Mat(inputSize[1], inputSize[0], 16),
     oleft = (inputSize[0]-inputSize[1])/2;
@@ -87,14 +100,19 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
     return video;
   }
 
-  function frameBuffer(length, fill){
-    return _.range(length).map(() => {
-      const o = {
-        frame: new cv.Mat(s, s, 16),
-        mask: new cv.Mat(s, s, 16)
-      }
-      return o;
-    })
+  function frameBuffer(length, cacheIndex){
+    if(cacheIndex && bufferCache[cacheIndex]) return bufferCache[cacheIndex]
+    else{
+      const buffer = _.range(length).map(() => {
+        const o = {
+          frame: new cv.Mat(s, s, 16),
+          mask: new cv.Mat(s, s, 16)
+        }
+        return o;
+      })
+      if(cacheIndex) bufferCache[cacheIndex] = buffer
+      return buffer
+    }
   }
 
   function capture(video, dest, bg) {
@@ -103,7 +121,8 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
     if (bg) getMask(bg, dest.frame, dest.mask);
   }
 
-  function drawRoi(roi, Tfrac, nextFrame, prevFrame) {
+  function drawRoi(roi, Tfrac, nextFrame, prevFrame, isLive, black=0) {
+    (isLive?liveFrameBorder:frameBorder).copyTo(roi.frame)
     if (Tfrac !== -1) {
       const ITfrac = 1 - Tfrac,
         { bg, fg, mask, overlapMask, invOverlapMask, prevMasked, nextMasked } = roi;
@@ -147,6 +166,7 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
       }
 
     } else nextFrame.frame.copyTo(roi.bg);
+    if(black !== 0) cv.addWeighted(roi.frame, 1-black, blackFrame, black, 1, roi.frame);
   }
 
   return {

@@ -133,11 +133,11 @@ function noiseGrid(x, y, z) {
     _.range(x).map(j => {
       const nx = j * scale,
         ny = i * scale;
-      const a = getNoiseDir(nx, ny, z + 0.4),
+      const a = getNoiseDir(nx, ny, z + 0.2),
         b = getNoiseDir(nx, ny, z + 0.8);
       const out = [0, 0, 0, 0];
-      out[a] += 1;
-      out[b] += 2;
+      if(Math.random() > 0.4) out[a] += 1;
+      if(Math.random() > 0.4) out[b] += 2;
       return [[0, 0, 0, 0], out];
     })
   );
@@ -368,7 +368,7 @@ function evaluate(seq, print) {
       failed = true;
       //throw "oh";
     }
-    return [grid, lused];
+    return [grid, {...used, ...lused}];
   });
 
   const count = _.sum(_.values(used)),
@@ -385,7 +385,7 @@ function evaluate(seq, print) {
     count,
     avg,
     vari: vari,
-    score: (1/vari) *avg ,
+    score: (1 / vari) * avg,
     used: used
   };
 }
@@ -422,11 +422,12 @@ function cell2text(cell) {
 
 // const start = emptyGrid(16,9);
 // start[2][2][1] = [0, 0, 0, 3];
-// const s = makeRandSeq([start, { "0000-0003": 1 }], 50);
+// const s = makeRandSeq([start, { "0000-0003": 1 }], 500);
 // s.forEach((step, i) => {
 //   console.log(display.asciiGrid(step[0]));
 // });
-// fs.writeFileSync('media/rseq169.json', JSON.stringify(s))
+// console.log(_.keys(evaluate(s, 0).used).length)
+// fs.writeFileSync('media/rseq169long.json', JSON.stringify(s))
 
 // if (0) {
 //   let max = 0;
@@ -511,7 +512,9 @@ function computeNext(width, height, step) {
 // node: {cell:[io,io], pos: [x,y], children: []}
 // step: { [x+'-'+y]: [io, io]}
 let m = 0;
-function createSeqTree(width, height, entrance, used, n) {
+function createSeqTree(width, height, entrance, used, n, ending) {
+  const isEnding = n < ending
+  //console.log(n, ending)
   const thisios = [...shuffle(possibleIos)];
   //if(_.keys(entrance).length > 10) thisios[0] = '0000'
   if (used.length > m) {
@@ -531,7 +534,7 @@ function createSeqTree(width, height, entrance, used, n) {
       const hasMissing = _.some(uniqEntranceIos, io => {
         const sio = io2string(io);
         return !(
-          _.isEqual(io, addnlIo) ||
+          (!isEnding && _.isEqual(io, addnlIo)) ||
           _.some(used, cell => {
             return cell.indexOf(sio) === 0;
           })
@@ -542,9 +545,9 @@ function createSeqTree(width, height, entrance, used, n) {
       for (let j = 0; j < thisios.length; j++) {
         const exitIo = string2io(thisios[j]);
         //console.log('exit', exitIo)
-        const availableCells = [cell2string([addnlIo, exitIo]), ...used];
+        const availableCells = isEnding?used:[cell2string([addnlIo, exitIo]), ...used];
         const possibleCells = _.mapValues(entrance, cell => {
-          return _.isEqual(cell[0], addnlIo)
+          return (!isEnding && _.isEqual(cell[0], addnlIo))
             ? [availableCells[0]]
             : _.compact(
                 availableCells.map(acell => {
@@ -569,7 +572,7 @@ function createSeqTree(width, height, entrance, used, n) {
           );
           if (!next) continue; //next has a tibe conflict. skip this one
           //if(_.keys(next).length < _.keys(entrance).length) continue;
-          const tail = createSeqTree(width, height, next, availableCells, n - 1);
+          const tail = createSeqTree(width, height, next, availableCells, n - 1, ending);
           if (!tail) continue;
           //possibleOuts.push([output, ...tail])
           const res = [output, ...tail];
@@ -623,3 +626,72 @@ function createGridSeq(width, height, seq) {
 //   }
 //   //console.log(JSON.stringify(seq, null, 2));
 // }
+
+
+// function mapSeq(seq, predicate){
+//   return seq.map(step => {
+//     const [cells, used] = step;
+//     const nextUsed = {}
+//     _.keys(used).forEach(cell => {
+//       const asCell = string2cell(cell)
+//       const next = cell2string(asCell.map(predicate))
+//       nextUsed[next] = 1
+//     })
+//     const nextCells = cells.map(row => {
+//       return row.map(v => v.map(predicate))
+//     })
+//     return [nextCells, nextUsed]
+//   })
+// }
+// const inseq = JSON.parse(fs.readFileSync(`media/${88284009}.json`));
+// const mapped = mapSeq(inseq, a => {
+//   const [t,l,b,r] = a
+//   return [r,t,l,b]
+// })
+// fs.writeFileSync(`media/88284009_1.json`, JSON.stringify(mapped));
+
+// const r = 88284009
+// prng = new Alea(r);
+// const seq = createSeqTree(
+//   7,
+//   7,
+//   {
+//     "3,3": [[0, 0, 0, 0], [0, 0, 0, 0]]
+//   },
+//   [],
+//   80,
+//   30
+// );
+// const gseq = createGridSeq(7, 7, seq);
+// const eval = evaluate(gseq, 1);
+// console.log(eval)
+// fs.writeFileSync(`media/${r}-1.json`, JSON.stringify(eval.grid));
+
+//console.log(eval.grid.map(g => _.keys(g[1])))
+
+// const avg = _.mean(seq.map(s => _.uniq(_.values(s)).length));
+// if (avg > max) {
+//   max = avg;
+//   console.log(avg, r);
+//   const gseq = createGridSeq(7, 7, seq);
+//   const eval = evaluate(gseq, 0);
+//   fs.writeFileSync(`media/seq${r}.json`, JSON.stringify(eval.grid));
+// }
+
+
+//SHORTTT
+//  prng = new Alea(106);
+// const seq = createSeqTree(
+//   7,
+//   7,
+//   {
+//     "3,3": [[0, 0, 0, 0], [0, 0, 0, 0]]
+//   },
+//   [],
+//   7,
+//   5
+// );
+// const gseq = createGridSeq(7, 7, seq);
+// const eval = evaluate(gseq, 1);
+// console.log(eval)
+// fs.writeFileSync(`media/short.json`, JSON.stringify(eval.grid));
