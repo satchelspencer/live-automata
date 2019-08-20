@@ -14,7 +14,7 @@
     "bindings": "~1.2.1",
     "express": "^4.16.4",
     "ffplay": "^1.1.0",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.15",
     "node-addon-api": "^1.0.0",
     "simplex-noise": "^2.4.0",
     "socket.io": "^2.2.0",
