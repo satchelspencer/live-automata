@@ -1,4 +1,4 @@
-const cv = require("./");
+const cv = require('bindings')('opencv');
 const fs = require("fs");
 const _ = require("lodash");
 const createRenderer = require("./render");
@@ -83,14 +83,18 @@ config = {
   outRatio: 1,
   inputSize: [1260, 720],
   fadeRatio: 0.1,
-  mask: cv.imread("media/mask-desat-w.jpg"),
-  liveMask: cv.imread("media/mask-desat-w-live.jpg"),
-  blackMask: cv.imread("media/mask-desat-w-black.jpg"),
+  mask: new cv.Mat(),
+  liveMask: new cv.Mat(),
+  blackMask: new cv.Mat(),
   maskSize: 1390,
   maskVx: 62,
   maskVy: 71,
   maskVsize: 890
 };
+
+cv.imread("media/mask-desat-w.jpg", config.mask)
+cv.imread("media/mask-desat-w-live.jpg", config.liveMask)
+cv.imread("media/mask-desat-w-black.jpg", config.blackMask)
 
 /* video out */
 const pipename = "/tmp/myfifo";
@@ -110,7 +114,7 @@ const args = [
   `-i`,
   `${pipename}`
 ];
-//console.log('ffplay', args.join(' '))
+
 spawn("ffplay", args, { stdio: "ignore" });
 
 const pipe = new cv.PipeWriter(pipename);

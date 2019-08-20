@@ -1,37 +1,36 @@
 #include "VideoWriter.h"
 #include "Mat.h"
 
-Nan::Persistent<v8::FunctionTemplate> VideoWriter::constructor;
+VideoWriter::VideoWriter(const Napi::CallbackInfo& info) : Napi::ObjectWrap<VideoWriter>(info) {
+  std::string fileName = std::string(info[0].As<Napi::String>());
+  int height = info[2].As<Napi::Number>().Int32Value();
+  int width = info[1].As<Napi::Number>().Int32Value();
+  
+  this->writer = new cv::VideoWriter(
+    fileName,
+    cv::VideoWriter::fourcc('P','I','M','1'),
+    30,
+    cv::Size(width,height),
+    true
+  );
+};
 
-NAN_MODULE_INIT(VideoWriter::Init) {
-  v8::Local<v8::FunctionTemplate> ctor = Nan::New<v8::FunctionTemplate>(VideoWriter::New);
-  constructor.Reset(ctor);
-  ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(Nan::New("VideoWriter").ToLocalChecked());
+Napi::FunctionReference VideoWriter::constructor;
 
-  Nan::SetPrototypeMethod(ctor, "write", Write);
+Napi::Object VideoWriter::Init(Napi::Env env, Napi::Object exports) {
+  Napi::Function func = DefineClass(env, "VideoWriter", {
+    InstanceMethod("write", &VideoWriter::write),
+  });
 
-  target->Set(Nan::New("VideoWriter").ToLocalChecked(), ctor->GetFunction());  
+  constructor = Napi::Persistent(func);
+  constructor.SuppressDestruct();
 
+  exports.Set("VideoWriter", func);
+
+  return exports;
 }
 
-
-NAN_METHOD(VideoWriter::New) {
-  VideoWriter* video = new VideoWriter();
-  video->Wrap(info.Holder());
-
-  std::string path = *Nan::Utf8String(info[0]);
-  int width = info[1]->Int32Value();
-  int height = info[2]->Int32Value();
-
-  video->writer = new cv::VideoWriter(path, cv::VideoWriter::fourcc('P','I','M','1'),30,cv::Size(width,height),true);
-  video->writer->set(cv::VIDEOWRITER_PROP_QUALITY, 100);
-
-  info.GetReturnValue().Set(info.Holder());
-}
-
-NAN_METHOD(VideoWriter::Write) {
-  VideoWriter * self = Nan::ObjectWrap::Unwrap<VideoWriter>(info.This());
-  Mat * srcMat = Nan::ObjectWrap::Unwrap<Mat>(info[0]->ToObject());
-  self->writer->write(* srcMat->mat);
+void VideoWriter::write(const Napi::CallbackInfo &info){
+  Mat* src = Napi::ObjectWrap<Mat>::Unwrap(info[0].As<Napi::Object>());
+  this->writer->write(* src->mat);
 }

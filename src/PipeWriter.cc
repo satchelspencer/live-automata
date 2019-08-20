@@ -1,37 +1,29 @@
 #include "PipeWriter.h"
 #include "Mat.h"
-#include "unistd.h"
 
-Nan::Persistent<v8::FunctionTemplate> PipeWriter::constructor;
+PipeWriter::PipeWriter(const Napi::CallbackInfo& info) : Napi::ObjectWrap<PipeWriter>(info) {
+  std::string fileName = std::string(info[0].As<Napi::String>());
+  mkfifo(fileName.c_str(), 0666);
+  this->fd = open(fileName.c_str(),O_WRONLY);
+};
 
-NAN_MODULE_INIT(PipeWriter::Init) {
-  v8::Local<v8::FunctionTemplate> ctor = Nan::New<v8::FunctionTemplate>(PipeWriter::New);
-  constructor.Reset(ctor);
-  ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(Nan::New("PipeWriter").ToLocalChecked());
+Napi::FunctionReference PipeWriter::constructor;
 
-  Nan::SetPrototypeMethod(ctor, "write", Write);
+Napi::Object PipeWriter::Init(Napi::Env env, Napi::Object exports) {
+  Napi::Function func = DefineClass(env, "PipeWriter", {
+    InstanceMethod("write", &PipeWriter::writep),
+  });
 
-  target->Set(Nan::New("PipeWriter").ToLocalChecked(), ctor->GetFunction());  
+  constructor = Napi::Persistent(func);
+  constructor.SuppressDestruct();
 
+  exports.Set("PipeWriter", func);
+
+  return exports;
 }
 
-
-NAN_METHOD(PipeWriter::New) {
-  PipeWriter* video = new PipeWriter();
-  video->Wrap(info.Holder());
-
-  std::string path = *Nan::Utf8String(info[0]);
-
-  mkfifo(path.c_str(), 0666);
-  video->fd = open(path.c_str(),O_WRONLY);
-
-  info.GetReturnValue().Set(info.Holder());
-}
-
-NAN_METHOD(PipeWriter::Write) {
-  PipeWriter * self = Nan::ObjectWrap::Unwrap<PipeWriter>(info.This());
-  Mat * srcMat = Nan::ObjectWrap::Unwrap<Mat>(info[0]->ToObject());
-  size_t bytes = srcMat->mat->total() * srcMat->mat->elemSize();
-  write(self->fd, srcMat->mat->data, bytes);
+void PipeWriter::writep(const Napi::CallbackInfo &info){
+  Mat* src = Napi::ObjectWrap<Mat>::Unwrap(info[0].As<Napi::Object>());
+  size_t bytes = src->mat->total() * src->mat->elemSize();
+  write(this->fd, src->mat->data, bytes);
 }

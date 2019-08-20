@@ -1,17 +1,14 @@
-#include <nan.h>
-#include "opencv2/videoio.hpp"
+#include <napi.h>
+#include <opencv2/videoio.hpp>
 
-class VideoCapture : public Nan::ObjectWrap
-{
-  public:
-   cv::VideoCapture * cap;
+class VideoCapture : public Napi::ObjectWrap<VideoCapture> {
+ public:
+  static Napi::Object Init(Napi::Env env, Napi::Object exports);
+  VideoCapture(const Napi::CallbackInfo& info);
+  void read(const Napi::CallbackInfo &info);
+  void release(const Napi::CallbackInfo &info);
+  cv::VideoCapture * cap;
 
-  static NAN_MODULE_INIT(Init);
-  static NAN_METHOD(New);
-
-  static NAN_METHOD(Read);
-  static NAN_METHOD(Release);
-
-  static Nan::Persistent<v8::FunctionTemplate> constructor;
-
+ private:
+  static Napi::FunctionReference constructor;
 };

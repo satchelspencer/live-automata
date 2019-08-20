@@ -1,14 +1,14 @@
-#include <nan.h>
+#include <napi.h>
 #include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
 
-class Mat : public Nan::ObjectWrap
-{
-  public:
-   cv::Mat * mat;
-  static NAN_MODULE_INIT(Init);
-  static NAN_METHOD(New);
-  static NAN_METHOD(Roi);
-  static NAN_METHOD(CopyTo);
-  static Nan::Persistent<v8::FunctionTemplate> constructor;
+class Mat : public Napi::ObjectWrap<Mat> {
+ public:
+  static Napi::Object Init(Napi::Env env, Napi::Object exports);
+  Mat(const Napi::CallbackInfo& info);
+  void show(const Napi::CallbackInfo &info);
+  cv::Mat * mat;
 
+ private:
+  static Napi::FunctionReference constructor;
 };

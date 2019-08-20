@@ -1,9 +1,9 @@
-const cv = require("./");
+const cv = require('bindings')('opencv');
 const fs = require("fs");
 const _ = require("lodash");
 const createRenderer = require("./render");
 
-const rootDir = "../FINALS_200",//"/Volumes/POST_VERBAL/FINALS_892"//
+const rootDir = "/Volumes/POST_VERBAL/FINALS_892"//"../FINALS_200",//"/Volumes/POST_VERBAL/FINALS_892"//
   varCounts = _.mapValues(
     _.groupBy(fs.readdirSync(rootDir), p =>
       p
@@ -14,22 +14,25 @@ const rootDir = "../FINALS_200",//"/Volumes/POST_VERBAL/FINALS_892"//
     ),
     g => g.length
   ),
-  rseq = JSON.parse(fs.readFileSync("media/130.json")).slice(0),
-  framerate = 15,
+  rseq = JSON.parse(fs.readFileSync("media/rseq169.json")).slice(0),
+  framerate = 25,
   period = Math.floor(20.57 * framerate),
-  transLen = 4 * framerate;
+  transLen = 4 * framerate,
+
 config = {
   cellSize: 50,
   outRatio: 1,
-  inputSize: [200, 200],
+  inputSize: [892, 892],
   fadeRatio: 0.1,
-  mask: cv.imread("media/mask.jpg"),
+  mask: new cv.Mat(),
   maskSize: 1209,
   maskVx: 62,
   maskVy: 71,
   maskVsize: 895,
   vout: "out.mpeg"
 };
+
+cv.imread("media/mask.jpg", config.mask)
 
 const {
   seq,

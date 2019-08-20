@@ -1,17 +1,13 @@
-#include <nan.h>
-#include "opencv2/videoio.hpp"
+#include <napi.h>
+#include <opencv2/videoio.hpp>
 
-class VideoWriter : public Nan::ObjectWrap
-{
-  public:
-   cv::VideoWriter * writer;
+class VideoWriter : public Napi::ObjectWrap<VideoWriter> {
+ public:
+  static Napi::Object Init(Napi::Env env, Napi::Object exports);
+  VideoWriter(const Napi::CallbackInfo& info);
+  void write(const Napi::CallbackInfo &info);
+  cv::VideoWriter * writer;
 
-
-  static NAN_MODULE_INIT(Init);
-  static NAN_METHOD(New);
-
-  static NAN_METHOD(Write);
-
-  static Nan::Persistent<v8::FunctionTemplate> constructor;
-
+ private:
+  static Napi::FunctionReference constructor;
 };
