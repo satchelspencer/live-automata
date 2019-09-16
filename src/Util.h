@@ -18,5 +18,6 @@ void threshold(const Napi::CallbackInfo &info);
 void cvtColor(const Napi::CallbackInfo &info);
 void max(const Napi::CallbackInfo &info);
 void andx(const Napi::CallbackInfo &info);
+void putText(const Napi::CallbackInfo &info);
 
 void InitUtil(Napi::Env env, Napi::Object exports);

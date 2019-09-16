@@ -119,6 +119,26 @@ void andx(const Napi::CallbackInfo& info){
   cv::bitwise_and( * a->mat, * b->mat, * dest->mat);
 }
 
+
+
+void putText(const Napi::CallbackInfo& info){
+  Mat* dest = Napi::ObjectWrap<Mat>::Unwrap(info[0].As<Napi::Object>());
+  std::string text = std::string(info[1].As<Napi::String>());
+  int x = info[2].As<Napi::Number>().Int32Value();
+  int y = info[3].As<Napi::Number>().Int32Value();
+  double size = info[4].As<Napi::Number>().DoubleValue();
+
+  int baseline=0;
+  int lineWidth = 1;
+  cv::Size textSize = getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 1, lineWidth, &baseline);
+
+  cv::Point P1;
+  P1.x=x;
+  P1.y=y;
+  
+ cv::putText(* dest->mat, text, P1, cv::FONT_HERSHEY_SIMPLEX, size/textSize.height, cv::Scalar(0,0,0), lineWidth, cv::LINE_AA);
+}
+
 void InitUtil(Napi::Env env, Napi::Object exports){
   //Napi::Object util = Napi::Object::New(env);
   
@@ -138,6 +158,7 @@ void InitUtil(Napi::Env env, Napi::Object exports){
   exports.Set("cvtColor", Napi::Function::New(env, cvtColor));
   exports.Set("max", Napi::Function::New(env, max));
   exports.Set("and", Napi::Function::New(env, andx));
+  exports.Set("putText", Napi::Function::New(env, putText));
   
   //exports.Set("util", util);
 }

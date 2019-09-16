@@ -38,6 +38,8 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
     height = y * cellSize,
     canvas = new cv.Mat(width, height, 16),
     oleft = outRatio === 1 ? 0 : (width - height) / 2
+
+    console.log(x, y)
   
   const frameBorder = new cv.Mat(cellSize, cellSize, 16)
   cv.resize(mask, frameBorder)
@@ -129,7 +131,7 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
     if (bg) getMask(bg, dest.frame, dest.mask)
   }
 
-  function drawRoi(roi, Tfrac, nextFrame, prevFrame, isLive, black = 0) {
+  function drawRoi(roi, Tfrac, nextFrame, prevFrame, isLive, black = 0, text) {
     cv.copy(isLive ? liveFrameBorder : frameBorder, roi.frame)
     if (Tfrac !== -1) {
       const ITfrac = 1 - Tfrac,
@@ -173,6 +175,7 @@ module.exports = function createRenderer(rseq, config, varCounts = {}) {
         cv.addWeighted(bg, Ffrac, nextFrame.frame, 1 - Ffrac, 0, bg)
       }
     } else cv.copy(nextFrame.frame, roi.bg)
+    if(text !== undefined) cv.putText(roi.bg, text+'', s*0.01, s/15 + s*0.025, s/15)
     if (black !== 0) cv.addWeighted(roi.frame, 1 - black, blackFrame, black, 1, roi.frame)
   }
 

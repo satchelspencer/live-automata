@@ -2,36 +2,55 @@
   <head>
     <title>audioplay</title>
     <style type="text/css">
-      Body{
-        font-size: 30px;
+      body {
+        font-size: 18px;
         font-family: sans-serif;
+        background: black;
+        color: #afafaf;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
       }
-      button{
-        font-size: 30px;
+      button {
+        font-size: 18px;
       }
-      #connectstate{
-
+      #connectstate {
+      }
+      iframe {
+        width: 820px;
+        height: 429px;
+        border: none;
+      }
+      #other {
+        height: 420px;
+        width: 135px;
       }
     </style>
   </head>
   <body>
-    <audio id="sample"></audio>
-    <audio id="doowop" controls src="samples/doowopfade2.mp3"></audio>
-    <div id="connectstate" style="color:red;">disconnected</div>
-    <button id="startStop">start</button>
-    <div id="delay"> - </div>
-    <div id="dancerState"> - </div>
-    <div id="stepIndex"> - </div>
-    <div id="frameNumber"> - </div>
+    <iframe src="monitor.html"></iframe>
+    <div id="other">
+      <audio id="sample"></audio>
+      <audio id="doowop" src="samples/doowopfadewarningonly.mp3"></audio>
+      <div id="connectstate" style="color:red;">disconnected</div>
+      <button id="startStop">start</button>
+      <div id="ticker">-</div>
+      <div id="delay">-</div>
+      <div id="dancerState">-</div>
+      <div id="stepIndex">-</div>
+      <div id="frameNumber">-</div>
+    </div>
     <script src="/socket.io/socket.io.js"></script>
     <script type="text/javascript">
       const sample = document.getElementById('sample')
-      const socket = io.connect("http://localhost:1111/");
-      
+      const socket = io.connect('http://localhost:1111/')
+
       let playing = false
       let shouldReset = false
+      const lastSounds = []
       /* sample play */
-      socket.on("play", sound =>{
+      socket.on('play', sound => {
         sample.src = `samples/${sound}.mp3`
         sample.play()
         playing = true
@@ -39,28 +58,30 @@
           playing = false
           socket.emit('playdone')
         }
-      });
+        lastSounds.push(sound)
+        if (lastSounds.length > 3) lastSounds.shift()
+        ticker.innerHTML = lastSounds.join(' ')
+      })
 
       /* play pause */
       let started = false
       const startStop = document.getElementById('startStop')
       startStop.onclick = () => {
         socket.emit('playpause')
-        if(playing && started) sample.pause()
-        if(playing && !started) sample.play()
+        if (playing && started) sample.pause()
+        if (playing && !started) sample.play()
         started = !started
-        if(started) startStop.innerHTML = "stop"
-        else startStop.innerHTML = "start"
+        if (started) startStop.innerHTML = 'stop'
+        else startStop.innerHTML = 'start'
       }
-
 
       const connectState = document.getElementById('connectstate')
       socket.on('connect', () => {
-        if(shouldReset) window.location.reload()
-        else{
+        if (shouldReset) window.location.reload()
+        else {
           connectState.style.color = 'green'
           connectState.innerHTML = 'connected'
-        }       
+        }
       })
       socket.on('disconnect', () => {
         shouldReset = true
@@ -69,7 +90,7 @@
         dancerState.innerHTML = ' - '
         delay.innerHTML = ' - '
         sample.pause()
-        sample.src = ""
+        sample.src = ''
       })
 
       const dancerState = document.getElementById('dancerState')
@@ -84,7 +105,7 @@
 
       const delay = document.getElementById('delay')
       socket.on('delay', value => {
-        delay.innerHTML = Math.round(1/(value/1000)*10)/10+' fps'
+        delay.innerHTML = Math.round(value) + 'ms' // Math.round(1/(value/1000)*10)/10+' fps'
       })
 
       const stepIndex = document.getElementById('stepIndex')
@@ -92,7 +113,7 @@
         stepIndex.innerHTML = `step: ${step}`
       })
 
-      const doowop = document.getElementById('doowop');
+      const doowop = document.getElementById('doowop')
       socket.on('startMusic', () => {
         doowop.currentTime = 0
         doowop.play()

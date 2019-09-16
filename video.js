@@ -3,7 +3,7 @@ const fs = require("fs");
 const _ = require("lodash");
 const createRenderer = require("./render");
 
-const rootDir = "/Volumes/POST_VERBAL/FINALS_892"//"../FINALS_200",//"/Volumes/POST_VERBAL/FINALS_892"//
+const rootDir = "/Volumes/POST_VERBAL/FINALS_892",//"../FINALS_200",//"/Volumes/POST_VERBAL/FINALS_892"//
   varCounts = _.mapValues(
     _.groupBy(fs.readdirSync(rootDir), p =>
       p
@@ -14,17 +14,18 @@ const rootDir = "/Volumes/POST_VERBAL/FINALS_892"//"../FINALS_200",//"/Volumes/P
     ),
     g => g.length
   ),
-  rseq = JSON.parse(fs.readFileSync("media/rseq169.json")).slice(0),
+  rseq = JSON.parse(fs.readFileSync("media/rseq169long.json")).slice(1),
   framerate = 25,
   period = Math.floor(20.57 * framerate),
   transLen = 4 * framerate,
 
 config = {
-  cellSize: 50,
+  cellSize: 100,
   outRatio: 1,
   inputSize: [892, 892],
   fadeRatio: 0.1,
   mask: new cv.Mat(),
+  liveMask: new cv.Mat(),
   maskSize: 1209,
   maskVx: 62,
   maskVy: 71,
@@ -33,6 +34,7 @@ config = {
 };
 
 cv.imread("media/mask.jpg", config.mask)
+cv.imread("media/mask-active.jpg", config.liveMask)
 
 const {
   seq,
@@ -45,9 +47,11 @@ const {
   width,
   height
 } = createRenderer(rseq, config, varCounts);
-const writer = new cv.VideoWriter("media/outtest.mpeg", width, height);
+const writer = new cv.VideoWriter("media/out43.mpeg", width, height);
 let prevVideos = {},
   nextVideos = {};
+
+const usageIndex = {}
 
 let ft = new Date().getTime();
 function render(frame) {
@@ -66,6 +70,7 @@ function render(frame) {
 
   if (frameCurrent === 0) {
     console.log(stepIndex)
+    if(usageIndex[liveCell] === undefined) usageIndex[liveCell] = stepIndex
     _.values(prevVideos).forEach(video => video.video.capture.release());
     prevVideos = nextVideos;
 
@@ -99,7 +104,10 @@ function render(frame) {
       const prevCell = prevStep && prevStep[j][i],
         nextFrame = nextVideos[cell].buffer[0],
         prevFrame = prevStep && prevVideos[prevCell].buffer[0],
-        roi = rois[j][i];
+        roi = rois[j][i],
+        uindex = usageIndex[cell.substr(0,9)],
+        ustring = cell.substr(0,9) + ' '+(uindex===undefined?'':uindex)
+      // drawRoi(roi, Tfrac, nextFrame, prevFrame, cell.substr(0,9) === liveCell, 0, ustring);
       drawRoi(roi, Tfrac, nextFrame, prevFrame);
       //if(cell === liveCell)cv.invert(roi.bg, roi.bg);
     })
