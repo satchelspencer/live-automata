@@ -77,12 +77,12 @@ function speak(text, cb = () => {}) {
 }
 
 /* renderer config */
-const framerate = 9,
+const framerate = 30,
   period = Math.floor(16 * framerate),
   pauseDelay = 10000,
   transLen = 4 * framerate,
   videoLen = period + transLen,
-  targetSize = 1088,
+  targetSize = 1260,
   cutoffIndex = 32,
   cellX = 4,
   cellY = 3,
@@ -120,7 +120,7 @@ const args = [
   "-sync",
   "ext",
   "-framerate",
-  framerate * 2,
+  framerate,
   `-i`,
   `${pipename}`
 ];
